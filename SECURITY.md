@@ -2,10 +2,7 @@
 
 ## Reporting Vulnerabilities
 
-Please report security issues privately:
-
-- Preferred: GitHub Security Advisories ("Report a vulnerability" on the repository's Security tab)
-- Email: rakhimov.sardorbek1@gmail.com
+Please report security issues privately through GitHub Security Advisories: use "Report a vulnerability" on this repository's Security tab. Private vulnerability reporting is enabled.
 
 Do not open public issues for vulnerabilities and do not attach explicit media to GitHub issues or pull requests.
 
