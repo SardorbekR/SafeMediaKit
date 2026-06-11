@@ -2,7 +2,12 @@
 
 ## Reporting Vulnerabilities
 
-Please report security issues privately to the repository maintainer. Do not attach explicit media to GitHub issues or pull requests.
+Please report security issues privately:
+
+- Preferred: GitHub Security Advisories ("Report a vulnerability" on the repository's Security tab)
+- Email: rakhimov.sardorbek1@gmail.com
+
+Do not open public issues for vulnerabilities and do not attach explicit media to GitHub issues or pull requests.
 
 ## Media Handling
 

@@ -11,41 +11,50 @@ import AppKit
 public struct SafeMediaChatDemoView: View {
     @State private var imageURL: URL?
 
+    // Engines live in @State so they (and their caches) are created once per
+    // view identity — never build engines inside `body`.
+    @State private var safeEngine = SafeMediaEngine(
+        analyzer: MockSafeMediaAnalyzer(result: .success(.mockSafe)),
+        cache: InMemorySafeMediaVerdictCache()
+    )
+    @State private var sensitiveEngine = SafeMediaEngine(
+        analyzer: MockSafeMediaAnalyzer(result: .success(.mockSensitive)),
+        cache: InMemorySafeMediaVerdictCache()
+    )
+    @State private var unavailableEngine = SafeMediaEngine(
+        analyzer: MockSafeMediaAnalyzer(
+            result: .success(.mockSafe),
+            availability: .unavailable(.analysisPolicyDisabled)
+        ),
+        cache: InMemorySafeMediaVerdictCache()
+    )
+
     public init() {}
 
     public var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 14) {
                     if let imageURL {
-                        DemoRow(
-                            title: "Safe image",
+                        ChatMessageRow(
+                            sender: "Alex",
+                            caption: "Safe image (mock analyzer)",
                             imageURL: imageURL,
-                            engine: SafeMediaEngine(
-                                analyzer: MockSafeMediaAnalyzer(result: .success(.mockSafe)),
-                                cache: InMemorySafeMediaVerdictCache()
-                            )
+                            engine: safeEngine
                         )
 
-                        DemoRow(
-                            title: "Sensitive image",
+                        ChatMessageRow(
+                            sender: "Sam",
+                            caption: "Sensitive image (mock analyzer)",
                             imageURL: imageURL,
-                            engine: SafeMediaEngine(
-                                analyzer: MockSafeMediaAnalyzer(result: .success(.mockSensitive)),
-                                cache: InMemorySafeMediaVerdictCache()
-                            )
+                            engine: sensitiveEngine
                         )
 
-                        DemoRow(
-                            title: "Unavailable analysis",
+                        ChatMessageRow(
+                            sender: "Riley",
+                            caption: "Unavailable analysis (mock analyzer)",
                             imageURL: imageURL,
-                            engine: SafeMediaEngine(
-                                analyzer: MockSafeMediaAnalyzer(
-                                    result: .success(.mockSafe),
-                                    availability: .unavailable(.analysisPolicyDisabled)
-                                ),
-                                cache: InMemorySafeMediaVerdictCache()
-                            )
+                            engine: unavailableEngine
                         )
                     }
                 }
@@ -59,30 +68,52 @@ public struct SafeMediaChatDemoView: View {
     }
 }
 
-private struct DemoRow: View {
-    let title: String
+private struct ChatMessageRow: View {
+    let sender: String
+    let caption: String
     let imageURL: URL
     let engine: SafeMediaEngine
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.headline)
-
-            SafeMediaImage(
-                url: imageURL,
-                engine: engine,
-                context: .incomingMessage,
-                policy: .teenMessaging,
-                onReveal: {
-                    print("Reveal tapped for \(title)")
-                },
-                onReport: {
-                    print("Report tapped for \(title)")
+        HStack(alignment: .top, spacing: 10) {
+            Circle()
+                .fill(Color.accentColor.opacity(0.25))
+                .frame(width: 34, height: 34)
+                .overlay {
+                    Text(String(sender.prefix(1)))
+                        .font(.subheadline.weight(.semibold))
                 }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(sender)
+                    .font(.subheadline.weight(.semibold))
+
+                SafeMediaImage(
+                    url: imageURL,
+                    engine: engine,
+                    context: .incomingMessage,
+                    policy: .teenMessaging,
+                    onReveal: {
+                        print("Reveal tapped for \(caption)")
+                    },
+                    onReport: {
+                        print("Report tapped for \(caption)")
+                    }
+                )
+                .frame(width: 240, height: 170)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+
+                Text(caption)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(10)
+            .background(
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(Color.secondary.opacity(0.12))
             )
-            .frame(width: 260, height: 180)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            Spacer(minLength: 0)
         }
     }
 }

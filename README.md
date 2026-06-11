@@ -82,6 +82,8 @@ SafeMediaImage(
 )
 ```
 
+Reveal state is intentionally per-view-instance for privacy. In virtualized lists such as `LazyVStack`, scrolling away and back may re-blur a revealed image. To persist reveal choices, record your own message/media ID in `onReveal` and skip re-wrapping media the user already revealed.
+
 ## UIKit Usage
 
 ```swift
@@ -123,7 +125,9 @@ let decision = await engine.evaluate(
 )
 ```
 
-`SafeMediaEngine.evaluate` never throws. Analyzer failures become `.analysisFailed` decisions using `policy.failureAction`.
+`SafeMediaEngine.evaluate` never throws. Analyzer failures become `.analysisFailed` decisions using `policy.failureAction`. That includes cancellation: if the surrounding task is cancelled during analysis, `evaluate` returns a failure decision — callers that cancel evaluations should discard the result (the bundled views do).
+
+`AppleSensitiveContentAnalyzer` is only available on platforms where the `SensitiveContentAnalysis` framework can be imported (iOS 17+, macOS 14+, Mac Catalyst 17+).
 
 ## Policies
 
@@ -137,6 +141,8 @@ SafeMediaKit separates sensitive, unknown, unavailable, and failure behavior:
 | `classroomStrict` | `block` | `block` | `block` | `block` | no | yes |
 
 Preset names are UX defaults, not legal classifications, age-verification mechanisms, or safety guarantees. Host apps remain responsible for account policy, parental consent, and age-assurance requirements.
+
+Blur radius: the bundled SwiftUI/UIKit views use `SafeMediaImageConfiguration.blurRadius`. `SafeMediaPolicy.blurRadius` is carried on the policy for custom UIs that render decisions themselves.
 
 ## Testing With Mocks
 
@@ -173,32 +179,49 @@ To enable Apple's user preference manually: Settings > Privacy & Security > Sens
 
 Apps can open their own Settings page with `UIApplication.openSettingsURLString`, but SafeMediaKit does not use undocumented Settings URLs and does not claim to deep-link directly to the Sensitive Content Warning pane.
 
+## Demo
+
+`Examples/SafeMediaChatDemo` contains a copy-paste SwiftUI demo showing safe, sensitive, and unavailable states with mock analyzers — no explicit media. See its README for setup.
+
 ## Localization
 
 All user-facing strings in the default SwiftUI and UIKit intervention UI are configurable:
 
 ```swift
-SafeMediaImageConfiguration(
+let configuration = SafeMediaImageConfiguration(
     warningTitle: String(localized: "This may be sensitive"),
     warningMessage: String(localized: "You can choose whether to view it."),
+    unavailableTitle: String(localized: "Sensitive Content Analysis is off"),
+    unavailableMessage: String(localized: "To use Apple sensitive-content warnings, turn on Sensitive Content Warning in Settings > Privacy & Security, or enable Communication Safety through Screen Time."),
+    blockedTitle: String(localized: "Media hidden"),
+    blockedMessage: String(localized: "This media is hidden by the current safety policy."),
+    loadingTitle: String(localized: "Scanning media"),
     revealButtonTitle: String(localized: "Show"),
     reportButtonTitle: String(localized: "Report")
 )
+
+SafeMediaImage(
+    url: imageURL,
+    context: .incomingMessage,
+    policy: .teenMessaging,
+    configuration: configuration
+)
 ```
+
+The same `configuration:` parameter exists on `SafeMediaImageView.configure(...)`.
 
 ## Privacy
 
 SafeMediaKit processes only local media that your app passes to it. The package does not download remote URLs, upload media, log media URLs by default, or include analytics.
 
-## Content Categories
+## Xcode 27 Category Mapping
 
-The MVP maps Apple's detection result to a generic `.nudity` content type. Apple's newer `SCSensitivityAnalysis.detectedTypes` classification (`sexuallyExplicit`, `goreOrViolence`) is intentionally not referenced yet: the symbol must exist in the compile SDK, and runtime availability checks alone are not enough. Category mapping lands once CI compiles with an SDK that exposes it.
+When compiled with an SDK that exposes `SCSensitivityAnalysis.detectedTypes`, SafeMediaKit maps Apple's `sexuallyExplicit` and `goreOrViolence` categories into SDK-level content types behind runtime availability checks. With older SDKs, SafeMediaKit falls back to generic sensitive-content mapping.
 
 ## Roadmap
 
 - Video thumbnail and `AVPlayer` polish
 - Live stream analysis through `SCVideoStreamAnalyzer`
-- Category mapping via `SCSensitivityAnalysis.detectedTypes` once the compile SDK exposes it
 - More category-aware policies when newer Apple APIs are broadly available
 - DocC documentation
 - Snapshot/UI tests
