@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.2.0 - Unreleased
+## 0.2.1 - Unreleased
+
+- VoiceOver now exposes the default overlay as one text element plus separately focusable Show/Report buttons, instead of a single combined element with custom actions. Matches the UIKit overlay's accessibility shape and makes the actions discoverable without the custom-actions gesture.
+
+## 0.2.0 - 2026-06-11
 
 - Added a custom overlay slot: `SafeMediaImage` is now generic over its overlay; new `overlay:` initializers receive a `SafeMediaOverlayState`.
 - Added `SafeMediaOverlayState` with resolved copy, `canReveal`/`canReport` flags, and a policy-guarded `reveal()` that cannot bypass `block` or no-reveal policies.

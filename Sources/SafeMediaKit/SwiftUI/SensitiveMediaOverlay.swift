@@ -61,8 +61,6 @@ public struct SensitiveMediaOverlay: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.regularMaterial)
         .foregroundStyle(.primary)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(title). \(message)")
     }
 
     private func overlayStack(showsIcon: Bool, padding: CGFloat) -> some View {
@@ -75,6 +73,10 @@ public struct SensitiveMediaOverlay: View {
                     .accessibilityHidden(true)
             }
 
+            // Texts merge into a single VoiceOver stop; the buttons stay
+            // separate focusable elements so reveal/report are discoverable
+            // without knowing the custom-actions gesture (matches the UIKit
+            // overlay's accessibility shape).
             VStack(spacing: 4) {
                 Text(title)
                     .font(.headline)
@@ -87,6 +89,8 @@ public struct SensitiveMediaOverlay: View {
                     .multilineTextAlignment(.center)
                     .lineLimit(nil)
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(title). \(message)")
 
             if showsRevealButton || showsReportButton {
                 ViewThatFits(in: .horizontal) {
