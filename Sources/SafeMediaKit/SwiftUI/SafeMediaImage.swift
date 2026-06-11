@@ -130,16 +130,21 @@ public struct SafeMediaImage: View {
     }
 
     private var placeholder: some View {
-        ZStack {
+        let isInProgress = loadState == .loading || loadState == .scanning || loadState == .idle
+
+        return ZStack {
             Rectangle()
                 .fill(Color.secondary.opacity(0.16))
 
-            if loadState == .loading || loadState == .scanning || loadState == .idle {
+            if isInProgress {
                 ProgressView(configuration.loadingTitle)
                     .controlSize(.regular)
             }
         }
         .accessibilityLabel(configuration.loadingTitle)
+        // After failure the overlay (if any) carries the information; a bare
+        // backdrop labeled "scanning" would mislead VoiceOver users.
+        .accessibilityHidden(!isInProgress)
     }
 
     private var neutralBackground: some View {
