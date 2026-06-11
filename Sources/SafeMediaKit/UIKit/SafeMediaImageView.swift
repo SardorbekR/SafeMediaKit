@@ -54,24 +54,63 @@ public final class SafeMediaImageView: UIView {
         self.onReport = onReport
         self.decision = nil
         imageView.image = nil
-        // Fail safe: keep the image view hidden until a decision is applied,
-        // so sensitive content cannot flash unblurred while scanning.
+        // Stay hidden until a decision is applied (fail closed).
         imageView.isHidden = true
         setLoading(true)
         setHiddenState(false)
 
         task = Task { [weak self] in
-            guard let self else {
+            // Heavy awaits run without retaining the view so a released view
+            // can deinit (and cancel this task) while work is in flight.
+            let loadedImage: UIImage?
+            do {
+                let data = try await SafeMediaImageView.readData(from: imageURL)
+                loadedImage = UIImage(data: data)
+            } catch {
+                loadedImage = nil
+            }
+
+            guard !Task.isCancelled else {
                 return
             }
-            await self.loadAndEvaluate(
-                imageURL: imageURL,
-                engine: engine,
-                context: context,
-                policy: policy,
-                cacheKey: cacheKey,
-                generation: generation
-            )
+
+            if let loadedImage {
+                let decision = await engine.evaluate(
+                    .imageFile(imageURL),
+                    context: context,
+                    policy: policy,
+                    cacheKey: cacheKey
+                )
+
+                guard let self, !Task.isCancelled, generation == self.loadGeneration else {
+                    return
+                }
+
+                // The decision is applied in the same run-loop pass as the
+                // image so the raw image is never visible without one.
+                self.imageView.image = loadedImage
+                self.decision = decision
+                self.apply(decision)
+            } else {
+                guard let self, !Task.isCancelled, generation == self.loadGeneration else {
+                    return
+                }
+
+                let decision = SafeMediaDecision(
+                    action: policy.failureAction,
+                    verdict: SafeMediaVerdict(
+                        sensitivity: .unknown,
+                        contentTypes: [],
+                        guidance: .none,
+                        availability: .available
+                    ),
+                    context: context,
+                    policy: policy,
+                    reason: .analysisFailed
+                )
+                self.decision = decision
+                self.apply(decision)
+            }
         }
     }
 
@@ -146,63 +185,6 @@ public final class SafeMediaImageView: UIView {
         ])
     }
 
-    private func loadAndEvaluate(
-        imageURL: URL,
-        engine: SafeMediaEngine,
-        context: SafeMediaContext,
-        policy: SafeMediaPolicy,
-        cacheKey: SafeMediaCacheKey?,
-        generation: Int
-    ) async {
-        do {
-            let data = try await Self.readData(from: imageURL)
-
-            guard !Task.isCancelled, generation == loadGeneration else {
-                return
-            }
-
-            guard let image = UIImage(data: data) else {
-                throw SafeMediaError.imageLoadingFailed
-            }
-
-            let decision = await engine.evaluate(
-                .imageFile(imageURL),
-                context: context,
-                policy: policy,
-                cacheKey: cacheKey
-            )
-
-            guard !Task.isCancelled, generation == loadGeneration else {
-                return
-            }
-
-            // Assign and apply in the same main-actor turn — no render can
-            // happen between setting the image and applying the decision.
-            imageView.image = image
-            self.decision = decision
-            apply(decision)
-        } catch {
-            guard !Task.isCancelled, generation == loadGeneration else {
-                return
-            }
-
-            let decision = SafeMediaDecision(
-                action: policy.failureAction,
-                verdict: SafeMediaVerdict(
-                    sensitivity: .unknown,
-                    contentTypes: [],
-                    guidance: .none,
-                    availability: .available
-                ),
-                context: context,
-                policy: policy,
-                reason: .analysisFailed
-            )
-            self.decision = decision
-            apply(decision)
-        }
-    }
-
     private static func readData(from url: URL) async throws -> Data {
         try await Task.detached(priority: .userInitiated) {
             try Data(contentsOf: url)
@@ -221,11 +203,9 @@ public final class SafeMediaImageView: UIView {
             setHiddenState(true)
             titleLabel.text = title(for: decision)
             messageLabel.text = message(for: decision)
-            revealButton.setTitle(configuration.revealButtonTitle, for: .normal)
             reportButton.setTitle(configuration.reportButtonTitle, for: .normal)
             revealButton.isHidden = true
             reportButton.isHidden = !(configuration.showsReportButton && decision.policy.allowReport)
-            overlayView.accessibilityLabel = "\(title(for: decision)). \(message(for: decision))"
         case .blur, .blurWithReveal, .interruptVideo, .muteAudio:
             imageView.isHidden = false
             setHiddenState(true)
@@ -233,9 +213,12 @@ public final class SafeMediaImageView: UIView {
             messageLabel.text = message(for: decision)
             revealButton.setTitle(configuration.revealButtonTitle, for: .normal)
             reportButton.setTitle(configuration.reportButtonTitle, for: .normal)
-            revealButton.isHidden = !(decision.action == .blurWithReveal && decision.policy.allowReveal)
+            revealButton.isHidden = !(
+                decision.action == .blurWithReveal
+                    && decision.policy.allowReveal
+                    && imageView.image != nil
+            )
             reportButton.isHidden = !(configuration.showsReportButton && decision.policy.allowReport)
-            overlayView.accessibilityLabel = "\(title(for: decision)). \(message(for: decision))"
         }
     }
 

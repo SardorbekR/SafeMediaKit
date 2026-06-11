@@ -108,7 +108,7 @@ public struct SafeMediaImage: View {
         if isBlocked {
             neutralBackground
             overlay
-        } else if let image, decision != nil {
+        } else if let image {
             let hidden = shouldHideImage
 
             swiftUIImage(from: image)
@@ -121,8 +121,6 @@ public struct SafeMediaImage: View {
                 overlay
             }
         } else {
-            // The loaded image is never rendered before a decision exists,
-            // so sensitive content cannot flash unblurred while scanning.
             placeholder
 
             if shouldShowOverlayWithoutImage {
@@ -187,12 +185,12 @@ public struct SafeMediaImage: View {
     }
 
     private var shouldHideImage: Bool {
-        guard !isRevealed else {
+        if isRevealed {
             return false
         }
 
-        // Fail safe: treat a missing decision as not-yet-cleared.
         guard let decision else {
+            // No decision yet: fail closed.
             return true
         }
 
@@ -212,7 +210,7 @@ public struct SafeMediaImage: View {
     }
 
     private var canReveal: Bool {
-        guard let decision else {
+        guard image != nil, let decision else {
             return false
         }
         return decision.action == .blurWithReveal && decision.policy.allowReveal
@@ -233,8 +231,6 @@ public struct SafeMediaImage: View {
         switch decision.reason {
         case .unavailableByPolicy:
             return configuration.unavailableTitle
-        case .analysisFailed where decision.action == .block:
-            return configuration.blockedTitle
         default:
             return decision.action == .block
                 ? configuration.blockedTitle
@@ -250,8 +246,6 @@ public struct SafeMediaImage: View {
         switch decision.reason {
         case .unavailableByPolicy:
             return configuration.unavailableMessage
-        case .analysisFailed where decision.action == .block:
-            return configuration.blockedMessage
         default:
             return decision.action == .block
                 ? configuration.blockedMessage
@@ -271,10 +265,10 @@ public struct SafeMediaImage: View {
         decision = nil
         image = nil
 
-        guard let engine = activeEngine else {
-            decision = failureDecision()
-            loadState = .failed
-            return
+        if activeEngine == nil {
+            assertionFailure(
+                "SafeMediaImage requires a SafeMediaEngine via init(engine:) or .environment(\\.safeMediaEngine, _)."
+            )
         }
 
         do {
@@ -289,22 +283,32 @@ public struct SafeMediaImage: View {
                 throw SafeMediaError.imageLoadingFailed
             }
 
-            image = loadedImage
-            loadState = .scanning
-            let evaluatedDecision = await engine.evaluate(
-                .imageFile(url),
-                context: context,
-                policy: policy,
-                cacheKey: cacheKey
-            )
+            let evaluatedDecision: SafeMediaDecision
+            if let engine = activeEngine {
+                loadState = .scanning
+                evaluatedDecision = await engine.evaluate(
+                    .imageFile(url),
+                    context: context,
+                    policy: policy,
+                    cacheKey: cacheKey
+                )
+            } else {
+                evaluatedDecision = failureDecision()
+            }
 
             guard !Task.isCancelled else {
                 return
             }
 
+            // Decision must land before the image so the raw image is never
+            // rendered without an intervention decision (fail closed).
             decision = evaluatedDecision
+            image = loadedImage
             loadState = .loaded
         } catch {
+            guard !Task.isCancelled else {
+                return
+            }
             decision = failureDecision()
             loadState = .failed
         }
