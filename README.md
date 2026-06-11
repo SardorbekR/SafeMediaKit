@@ -1,5 +1,9 @@
 # SafeMediaKit
 
+[![CI](https://github.com/SardorbekR/SafeMediaKit/actions/workflows/ci.yml/badge.svg)](https://github.com/SardorbekR/SafeMediaKit/actions/workflows/ci.yml)
+[![Swift Versions](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FSardorbekR%2FSafeMediaKit%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/SardorbekR/SafeMediaKit)
+[![Platforms](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FSardorbekR%2FSafeMediaKit%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/SardorbekR/SafeMediaKit)
+
 SafeMediaKit is a Swift-native sensitive media intervention toolkit for Apple apps. It helps apps analyze user-provided images and videos before display and present privacy-preserving blur, reveal, block, and report flows.
 
 SafeMediaKit relies on Apple's public `SensitiveContentAnalysis` framework when available. It only works on media your app provides to it. It cannot inspect or modify content inside other apps.
