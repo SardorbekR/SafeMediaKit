@@ -7,10 +7,12 @@ public final class SafeMediaImageView: UIView {
     private let imageView = UIImageView()
     private let blurView = UIVisualEffectView(effect: UIBlurEffect(style: .systemMaterial))
     private let overlayView = UIStackView()
+    private let iconView = UIImageView()
     private let titleLabel = UILabel()
     private let messageLabel = UILabel()
     private let revealButton = UIButton(type: .system)
     private let reportButton = UIButton(type: .system)
+    private let buttonsStack = UIStackView()
     private let activityIndicator = UIActivityIndicatorView(style: .medium)
 
     private var task: Task<Void, Never>?
@@ -19,6 +21,8 @@ public final class SafeMediaImageView: UIView {
     private var configuration: SafeMediaImageConfiguration = .default
     private var onReveal: @MainActor @Sendable () -> Void = {}
     private var onReport: @MainActor @Sendable () -> Void = {}
+    private var overlayProvider: (@MainActor (SafeMediaOverlayState) -> UIView)?
+    private var customOverlayView: UIView?
     private var loadGeneration = 0
 
     public override init(frame: CGRect) {
@@ -35,6 +39,13 @@ public final class SafeMediaImageView: UIView {
         task?.cancel()
     }
 
+    /// Configures the view for an image URL.
+    ///
+    /// Pass `overlayProvider` to replace the built-in message/buttons overlay
+    /// with a custom view. The provided view is pinned edge-to-edge above the
+    /// redaction blur — the blur itself always stays underneath, so custom
+    /// overlays cannot remove redaction. The provider is invoked again on
+    /// every reconfigure or new decision.
     public func configure(
         imageURL: URL,
         engine: SafeMediaEngine,
@@ -43,7 +54,8 @@ public final class SafeMediaImageView: UIView {
         configuration: SafeMediaImageConfiguration = .default,
         cacheKey: SafeMediaCacheKey? = nil,
         onReveal: @escaping @MainActor @Sendable () -> Void = {},
-        onReport: @escaping @MainActor @Sendable () -> Void = {}
+        onReport: @escaping @MainActor @Sendable () -> Void = {},
+        overlayProvider: (@MainActor (SafeMediaOverlayState) -> UIView)? = nil
     ) {
         task?.cancel()
         loadGeneration += 1
@@ -52,7 +64,9 @@ public final class SafeMediaImageView: UIView {
         self.configuration = configuration
         self.onReveal = onReveal
         self.onReport = onReport
+        self.overlayProvider = overlayProvider
         self.decision = nil
+        removeCustomOverlay()
         imageView.image = nil
         // Stay hidden until a decision is applied (fail closed).
         imageView.isHidden = true
@@ -134,35 +148,51 @@ public final class SafeMediaImageView: UIView {
         overlayView.translatesAutoresizingMaskIntoConstraints = false
         overlayView.axis = .vertical
         overlayView.alignment = .center
-        overlayView.spacing = 10
-        overlayView.isLayoutMarginsRelativeArrangement = true
-        overlayView.directionalLayoutMargins = NSDirectionalEdgeInsets(
-            top: 16,
-            leading: 16,
-            bottom: 16,
-            trailing: 16
-        )
-        overlayView.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.86)
+        overlayView.spacing = 12
         overlayView.isHidden = true
         addSubview(overlayView)
+
+        iconView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(
+            textStyle: .title2,
+            scale: .large
+        )
+        iconView.tintColor = .secondaryLabel
+        iconView.adjustsImageSizeForAccessibilityContentSizeCategory = true
+        iconView.isAccessibilityElement = false
 
         titleLabel.font = .preferredFont(forTextStyle: .headline)
         titleLabel.adjustsFontForContentSizeCategory = true
         titleLabel.numberOfLines = 0
         titleLabel.textAlignment = .center
 
-        messageLabel.font = .preferredFont(forTextStyle: .subheadline)
+        messageLabel.font = .preferredFont(forTextStyle: .footnote)
+        messageLabel.textColor = .secondaryLabel
         messageLabel.adjustsFontForContentSizeCategory = true
         messageLabel.numberOfLines = 0
         messageLabel.textAlignment = .center
 
+        var revealConfiguration = UIButton.Configuration.filled()
+        revealConfiguration.cornerStyle = .capsule
+        revealConfiguration.buttonSize = .small
+        revealButton.configuration = revealConfiguration
         revealButton.addTarget(self, action: #selector(revealTapped), for: .touchUpInside)
+
+        var reportConfiguration = UIButton.Configuration.gray()
+        reportConfiguration.cornerStyle = .capsule
+        reportConfiguration.buttonSize = .small
+        reportButton.configuration = reportConfiguration
         reportButton.addTarget(self, action: #selector(reportTapped), for: .touchUpInside)
 
+        buttonsStack.axis = .horizontal
+        buttonsStack.spacing = 8
+        buttonsStack.addArrangedSubview(revealButton)
+        buttonsStack.addArrangedSubview(reportButton)
+
+        overlayView.addArrangedSubview(iconView)
         overlayView.addArrangedSubview(titleLabel)
         overlayView.addArrangedSubview(messageLabel)
-        overlayView.addArrangedSubview(revealButton)
-        overlayView.addArrangedSubview(reportButton)
+        overlayView.addArrangedSubview(buttonsStack)
+        overlayView.setCustomSpacing(4, after: titleLabel)
 
         NSLayoutConstraint.activate([
             imageView.topAnchor.constraint(equalTo: topAnchor),
@@ -175,14 +205,27 @@ public final class SafeMediaImageView: UIView {
             blurView.trailingAnchor.constraint(equalTo: trailingAnchor),
             blurView.bottomAnchor.constraint(equalTo: bottomAnchor),
 
-            overlayView.topAnchor.constraint(equalTo: topAnchor),
-            overlayView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            overlayView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            overlayView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            overlayView.centerXAnchor.constraint(equalTo: centerXAnchor),
+            overlayView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            overlayView.widthAnchor.constraint(lessThanOrEqualToConstant: 280),
+            overlayView.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 16),
+            overlayView.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -16),
+            // Lower priority so cramped frames compress the overlay (clipping
+            // the icon edge) instead of breaking the layout.
+            prioritized(overlayView.topAnchor.constraint(greaterThanOrEqualTo: topAnchor, constant: 16)),
+            prioritized(overlayView.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -16)),
 
             activityIndicator.centerXAnchor.constraint(equalTo: centerXAnchor),
             activityIndicator.centerYAnchor.constraint(equalTo: centerYAnchor)
         ])
+    }
+
+    private func prioritized(
+        _ constraint: NSLayoutConstraint,
+        _ priority: UILayoutPriority = .defaultHigh
+    ) -> NSLayoutConstraint {
+        constraint.priority = priority
+        return constraint
     }
 
     private static func readData(from url: URL) async throws -> Data {
@@ -194,50 +237,74 @@ public final class SafeMediaImageView: UIView {
     private func apply(_ decision: SafeMediaDecision) {
         setLoading(false)
 
+        let generation = loadGeneration
+        let state = SafeMediaOverlayState(
+            decision: decision,
+            configuration: configuration,
+            hasImage: imageView.image != nil,
+            onReveal: { [weak self] in
+                guard let self, generation == self.loadGeneration else {
+                    return
+                }
+                self.revealMedia()
+                self.onReveal()
+            },
+            onReport: { [weak self] in
+                guard let self, generation == self.loadGeneration else {
+                    return
+                }
+                self.onReport()
+            }
+        )
+
         switch decision.action {
         case .allow:
+            removeCustomOverlay()
             imageView.isHidden = false
             setHiddenState(false)
-        case .block:
-            imageView.isHidden = true
+        case .block, .blur, .blurWithReveal, .interruptVideo, .muteAudio:
+            imageView.isHidden = decision.action == .block
             setHiddenState(true)
-            titleLabel.text = title(for: decision)
-            messageLabel.text = message(for: decision)
-            reportButton.setTitle(configuration.reportButtonTitle, for: .normal)
-            revealButton.isHidden = true
-            reportButton.isHidden = !(configuration.showsReportButton && decision.policy.allowReport)
-        case .blur, .blurWithReveal, .interruptVideo, .muteAudio:
-            imageView.isHidden = false
-            setHiddenState(true)
-            titleLabel.text = title(for: decision)
-            messageLabel.text = message(for: decision)
-            revealButton.setTitle(configuration.revealButtonTitle, for: .normal)
-            reportButton.setTitle(configuration.reportButtonTitle, for: .normal)
-            revealButton.isHidden = !(
-                decision.action == .blurWithReveal
-                    && decision.policy.allowReveal
-                    && imageView.image != nil
-            )
-            reportButton.isHidden = !(configuration.showsReportButton && decision.policy.allowReport)
+
+            if let overlayProvider {
+                overlayView.isHidden = true
+                installCustomOverlay(overlayProvider(state))
+            } else {
+                applyDefaultOverlay(with: state)
+            }
         }
     }
 
-    private func title(for decision: SafeMediaDecision) -> String {
-        switch decision.reason {
-        case .unavailableByPolicy:
-            configuration.unavailableTitle
-        default:
-            decision.action == .block ? configuration.blockedTitle : configuration.warningTitle
-        }
+    private func applyDefaultOverlay(with state: SafeMediaOverlayState) {
+        iconView.image = UIImage(
+            systemName: SafeMediaOverlayGlyph.systemImageName(for: state.decision)
+        )
+        titleLabel.text = state.title
+        messageLabel.text = state.message
+
+        revealButton.configuration?.title = state.configuration.revealButtonTitle
+        reportButton.configuration?.title = state.configuration.reportButtonTitle
+        revealButton.isHidden = !state.canReveal
+        reportButton.isHidden = !state.canReport
+        buttonsStack.isHidden = !state.canReveal && !state.canReport
     }
 
-    private func message(for decision: SafeMediaDecision) -> String {
-        switch decision.reason {
-        case .unavailableByPolicy:
-            configuration.unavailableMessage
-        default:
-            decision.action == .block ? configuration.blockedMessage : configuration.warningMessage
-        }
+    private func installCustomOverlay(_ view: UIView) {
+        removeCustomOverlay()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(view)
+        NSLayoutConstraint.activate([
+            view.topAnchor.constraint(equalTo: topAnchor),
+            view.leadingAnchor.constraint(equalTo: leadingAnchor),
+            view.trailingAnchor.constraint(equalTo: trailingAnchor),
+            view.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+        customOverlayView = view
+    }
+
+    private func removeCustomOverlay() {
+        customOverlayView?.removeFromSuperview()
+        customOverlayView = nil
     }
 
     private func setLoading(_ isLoading: Bool) {
@@ -251,12 +318,18 @@ public final class SafeMediaImageView: UIView {
     private func setHiddenState(_ isHidden: Bool) {
         blurView.isHidden = !isHidden
         overlayView.isHidden = !isHidden
+        customOverlayView?.isHidden = !isHidden
         imageView.accessibilityElementsHidden = isHidden
     }
 
-    @objc private func revealTapped() {
+    private func revealMedia() {
+        removeCustomOverlay()
         imageView.isHidden = false
         setHiddenState(false)
+    }
+
+    @objc private func revealTapped() {
+        revealMedia()
         onReveal()
     }
 
