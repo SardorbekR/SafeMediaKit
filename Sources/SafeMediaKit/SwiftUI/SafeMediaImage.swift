@@ -27,7 +27,7 @@ private func swiftUIImage(from image: SafeMediaPlatformImage) -> Image {
 #endif
 
 @available(iOS 17.0, macOS 14.0, macCatalyst 17.0, *)
-public struct SafeMediaImage: View {
+public struct SafeMediaImage<Overlay: View>: View {
     private enum LoadState: Equatable {
         case idle
         case loading
@@ -44,6 +44,7 @@ public struct SafeMediaImage: View {
     private let cacheKey: SafeMediaCacheKey?
     private let onReveal: @MainActor @Sendable () -> Void
     private let onReport: @MainActor @Sendable () -> Void
+    private let overlayContent: (SafeMediaOverlayState) -> Overlay
 
     @Environment(\.safeMediaEngine) private var environmentEngine
     @State private var image: SafeMediaPlatformImage?
@@ -51,6 +52,9 @@ public struct SafeMediaImage: View {
     @State private var loadState: LoadState = .idle
     @State private var isRevealed = false
 
+    /// Creates an image view with a custom intervention overlay. The overlay
+    /// closure receives a ``SafeMediaOverlayState`` and replaces the built-in
+    /// overlay for every non-allow state.
     public init(
         url: URL,
         engine: SafeMediaEngine,
@@ -59,7 +63,8 @@ public struct SafeMediaImage: View {
         configuration: SafeMediaImageConfiguration = .default,
         cacheKey: SafeMediaCacheKey? = nil,
         onReveal: @escaping @MainActor @Sendable () -> Void = {},
-        onReport: @escaping @MainActor @Sendable () -> Void = {}
+        onReport: @escaping @MainActor @Sendable () -> Void = {},
+        @ViewBuilder overlay: @escaping (SafeMediaOverlayState) -> Overlay
     ) {
         self.url = url
         self.explicitEngine = engine
@@ -69,8 +74,10 @@ public struct SafeMediaImage: View {
         self.cacheKey = cacheKey
         self.onReveal = onReveal
         self.onReport = onReport
+        self.overlayContent = overlay
     }
 
+    /// Environment-engine variant of the custom-overlay initializer.
     public init(
         url: URL,
         context: SafeMediaContext,
@@ -78,7 +85,8 @@ public struct SafeMediaImage: View {
         configuration: SafeMediaImageConfiguration = .default,
         cacheKey: SafeMediaCacheKey? = nil,
         onReveal: @escaping @MainActor @Sendable () -> Void = {},
-        onReport: @escaping @MainActor @Sendable () -> Void = {}
+        onReport: @escaping @MainActor @Sendable () -> Void = {},
+        @ViewBuilder overlay: @escaping (SafeMediaOverlayState) -> Overlay
     ) {
         self.url = url
         self.explicitEngine = nil
@@ -88,6 +96,7 @@ public struct SafeMediaImage: View {
         self.cacheKey = cacheKey
         self.onReveal = onReveal
         self.onReport = onReport
+        self.overlayContent = overlay
     }
 
     public var body: some View {
@@ -154,17 +163,22 @@ public struct SafeMediaImage: View {
     }
 
     private var overlay: some View {
-        SensitiveMediaOverlay(
-            title: overlayTitle,
-            message: overlayMessage,
-            revealButtonTitle: configuration.revealButtonTitle,
-            reportButtonTitle: configuration.reportButtonTitle,
-            showsRevealButton: canReveal,
-            showsReportButton: canReport,
-            onReveal: reveal,
-            onReport: {
-                onReport()
-            }
+        overlayContent(makeOverlayState())
+    }
+
+    private func makeOverlayState() -> SafeMediaOverlayState {
+        let revealed = $isRevealed
+        let hostOnReveal = onReveal
+
+        return SafeMediaOverlayState(
+            decision: decision ?? failureDecision(),
+            configuration: configuration,
+            hasImage: image != nil,
+            onReveal: {
+                revealed.wrappedValue = true
+                hostOnReveal()
+            },
+            onReport: onReport
         )
     }
 
@@ -212,56 +226,6 @@ public struct SafeMediaImage: View {
             return loadState == .failed
         }
         return decision.action != .allow
-    }
-
-    private var canReveal: Bool {
-        guard image != nil, let decision else {
-            return false
-        }
-        return decision.action == .blurWithReveal && decision.policy.allowReveal
-    }
-
-    private var canReport: Bool {
-        guard let decision else {
-            return false
-        }
-        return configuration.showsReportButton && decision.policy.allowReport
-    }
-
-    private var overlayTitle: String {
-        guard let decision else {
-            return configuration.blockedTitle
-        }
-
-        switch decision.reason {
-        case .unavailableByPolicy:
-            return configuration.unavailableTitle
-        default:
-            return decision.action == .block
-                ? configuration.blockedTitle
-                : configuration.warningTitle
-        }
-    }
-
-    private var overlayMessage: String {
-        guard let decision else {
-            return configuration.blockedMessage
-        }
-
-        switch decision.reason {
-        case .unavailableByPolicy:
-            return configuration.unavailableMessage
-        default:
-            return decision.action == .block
-                ? configuration.blockedMessage
-                : configuration.warningMessage
-        }
-    }
-
-    @MainActor
-    private func reveal() {
-        isRevealed = true
-        onReveal()
     }
 
     @MainActor
@@ -337,6 +301,55 @@ public struct SafeMediaImage: View {
             context: context,
             policy: policy,
             reason: .analysisFailed
+        )
+    }
+}
+
+@available(iOS 17.0, macOS 14.0, macCatalyst 17.0, *)
+public extension SafeMediaImage where Overlay == SensitiveMediaOverlay {
+    /// Creates an image view with the bundled default intervention overlay.
+    init(
+        url: URL,
+        engine: SafeMediaEngine,
+        context: SafeMediaContext,
+        policy: SafeMediaPolicy,
+        configuration: SafeMediaImageConfiguration = .default,
+        cacheKey: SafeMediaCacheKey? = nil,
+        onReveal: @escaping @MainActor @Sendable () -> Void = {},
+        onReport: @escaping @MainActor @Sendable () -> Void = {}
+    ) {
+        self.init(
+            url: url,
+            engine: engine,
+            context: context,
+            policy: policy,
+            configuration: configuration,
+            cacheKey: cacheKey,
+            onReveal: onReveal,
+            onReport: onReport,
+            overlay: { SensitiveMediaOverlay(state: $0) }
+        )
+    }
+
+    /// Environment-engine variant with the bundled default overlay.
+    init(
+        url: URL,
+        context: SafeMediaContext,
+        policy: SafeMediaPolicy,
+        configuration: SafeMediaImageConfiguration = .default,
+        cacheKey: SafeMediaCacheKey? = nil,
+        onReveal: @escaping @MainActor @Sendable () -> Void = {},
+        onReport: @escaping @MainActor @Sendable () -> Void = {}
+    ) {
+        self.init(
+            url: url,
+            context: context,
+            policy: policy,
+            configuration: configuration,
+            cacheKey: cacheKey,
+            onReveal: onReveal,
+            onReport: onReport,
+            overlay: { SensitiveMediaOverlay(state: $0) }
         )
     }
 }
