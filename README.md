@@ -12,9 +12,21 @@ It does not upload media to a server and does not include telemetry.
 
 ## Installation
 
-Add this repository as a Swift Package dependency in Xcode, then add `SafeMediaKit` to your app target.
+Add SafeMediaKit as a Swift Package dependency in Xcode (`File > Add Package Dependencies…`):
 
-For tests and previews, add `SafeMediaKitTesting` to the relevant test or demo target.
+```text
+https://github.com/SardorbekR/SafeMediaKit
+```
+
+Or in `Package.swift`:
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/SardorbekR/SafeMediaKit.git", from: "0.1.0")
+]
+```
+
+Add `SafeMediaKit` to your app target. For tests and previews, add `SafeMediaKitTesting` to the relevant test or demo target.
 
 ## Platform Support
 
