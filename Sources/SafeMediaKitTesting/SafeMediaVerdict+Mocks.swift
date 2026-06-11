@@ -8,12 +8,14 @@ public extension SafeMediaVerdict {
         availability: .available
     )
 
-    // Mirrors what `AppleSensitiveContentAnalyzer` produces in MVP:
-    // guidance stays `.none` until stream analyzers populate it.
     static let mockSensitive = SafeMediaVerdict(
         sensitivity: .sensitive,
         contentTypes: [.nudity],
-        guidance: .none,
+        guidance: SafeMediaGuidance(
+            shouldIndicateSensitivity: true,
+            shouldInterruptVideo: false,
+            shouldMuteAudio: false
+        ),
         availability: .available
     )
 

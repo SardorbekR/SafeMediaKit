@@ -10,6 +10,12 @@ public actor SafeMediaEngine {
         self.cache = cache
     }
 
+    /// Evaluates media and returns a decision. Never throws.
+    ///
+    /// Analyzer errors — including `CancellationError` from a cancelled task —
+    /// surface as a decision using `policy.failureAction` with reason
+    /// `.analysisFailed`. Callers that cancel evaluations should discard the
+    /// returned decision (the bundled views guard with `Task.isCancelled`).
     public func evaluate(
         _ source: SafeMediaSource,
         context: SafeMediaContext,
@@ -81,18 +87,20 @@ public actor SafeMediaEngine {
         let reason: SafeMediaDecisionReason
 
         switch (verdict.sensitivity, verdict.availability) {
-        case (_, .unavailable):
-            action = policy.unavailableAction
-            reason = .unavailableByPolicy
+        case (.sensitive, _):
+            action = policy.sensitiveAction
+            reason = .sensitiveDetected
         case (.safe, .available):
             action = .allow
             reason = .safe
-        case (.sensitive, .available):
-            action = policy.sensitiveAction
-            reason = .sensitiveDetected
         case (.unknown, .available):
             action = policy.unknownAction
             reason = .unknownByPolicy
+        case (.safe, .unavailable), (.unknown, .unavailable):
+            // A "safe" claim from an analyzer that reports itself unavailable is
+            // contradictory; treat it as unavailable rather than trusting the claim.
+            action = policy.unavailableAction
+            reason = .unavailableByPolicy
         }
 
         return SafeMediaDecision(

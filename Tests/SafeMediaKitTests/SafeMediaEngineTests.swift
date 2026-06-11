@@ -1,3 +1,4 @@
+import CoreGraphics
 import SafeMediaKit
 import SafeMediaKitTesting
 import XCTest
@@ -200,6 +201,153 @@ final class SafeMediaEngineTests: XCTestCase {
         XCTAssertEqual(decision.action, .block)
         XCTAssertEqual(counts.analyze, 0)
         XCTAssertEqual(counts.availability, 1)
+    }
+
+    func testSensitiveUnavailableVerdictUsesSensitiveAction() async {
+        let verdict = SafeMediaVerdict(
+            sensitivity: .sensitive,
+            contentTypes: [.nudity],
+            guidance: .none,
+            availability: .unavailable(.analysisPolicyDisabled)
+        )
+        let analyzer = MockSafeMediaAnalyzer(result: .success(verdict))
+        let engine = SafeMediaEngine(analyzer: analyzer)
+
+        let decision = await engine.evaluate(
+            .imageFile(URL(fileURLWithPath: "/tmp/sensitive-unavailable.png")),
+            context: .incomingMessage,
+            policy: .adultMinimal
+        )
+
+        XCTAssertEqual(decision.action, .blurWithReveal)
+        XCTAssertEqual(decision.reason, .sensitiveDetected)
+    }
+
+    func testSafeUnavailableVerdictUsesUnavailableAction() async {
+        let verdict = SafeMediaVerdict(
+            sensitivity: .safe,
+            contentTypes: [],
+            guidance: .none,
+            availability: .unavailable(.analysisPolicyDisabled)
+        )
+        let analyzer = MockSafeMediaAnalyzer(result: .success(verdict))
+        let engine = SafeMediaEngine(analyzer: analyzer)
+
+        let decision = await engine.evaluate(
+            .imageFile(URL(fileURLWithPath: "/tmp/safe-unavailable.png")),
+            context: .incomingMessage,
+            policy: .childStrict
+        )
+
+        XCTAssertEqual(decision.action, .block)
+        XCTAssertEqual(decision.reason, .unavailableByPolicy)
+    }
+
+    func testSensitiveUnavailableVerdictIsNotCached() async {
+        let verdict = SafeMediaVerdict(
+            sensitivity: .sensitive,
+            contentTypes: [.nudity],
+            guidance: .none,
+            availability: .unavailable(.analysisPolicyDisabled)
+        )
+        let analyzer = AnalyzerProbe(result: .success(verdict))
+        let cache = InMemorySafeMediaVerdictCache()
+        let engine = SafeMediaEngine(analyzer: analyzer, cache: cache)
+        let key = SafeMediaCacheKey(rawValue: "message-5")
+
+        for _ in 0..<2 {
+            _ = await engine.evaluate(
+                .imageFile(URL(fileURLWithPath: "/tmp/sensitive-unavailable.png")),
+                context: .incomingMessage,
+                policy: .adultMinimal,
+                cacheKey: key
+            )
+        }
+
+        let counts = await analyzer.counts()
+        XCTAssertEqual(counts.analyze, 2)
+    }
+
+    func testChildStrictBlocksSensitiveEndToEnd() async {
+        let analyzer = MockSafeMediaAnalyzer(result: .success(.mockSensitive))
+        let engine = SafeMediaEngine(analyzer: analyzer)
+
+        let decision = await engine.evaluate(
+            .imageFile(URL(fileURLWithPath: "/tmp/sensitive.png")),
+            context: .incomingMessage,
+            policy: .childStrict
+        )
+
+        XCTAssertEqual(decision.action, .block)
+        XCTAssertEqual(decision.reason, .sensitiveDetected)
+        XCTAssertFalse(decision.policy.allowReveal)
+    }
+
+    func testAdultMinimalBlursSensitiveWithRevealEndToEnd() async {
+        let analyzer = MockSafeMediaAnalyzer(result: .success(.mockSensitive))
+        let engine = SafeMediaEngine(analyzer: analyzer)
+
+        let decision = await engine.evaluate(
+            .imageFile(URL(fileURLWithPath: "/tmp/sensitive.png")),
+            context: .incomingMessage,
+            policy: .adultMinimal
+        )
+
+        XCTAssertEqual(decision.action, .blurWithReveal)
+        XCTAssertEqual(decision.reason, .sensitiveDetected)
+        XCTAssertTrue(decision.policy.allowReveal)
+    }
+
+    func testDerivedFileURLCacheKeyIsUsedWhenNoExplicitKeyProvided() async throws {
+        let fileURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("safemediakit-derived-key-\(UUID().uuidString).png")
+        try Data([0x01, 0x02, 0x03]).write(to: fileURL)
+        defer { try? FileManager.default.removeItem(at: fileURL) }
+
+        let analyzer = AnalyzerProbe(result: .success(.mockSafe))
+        let cache = InMemorySafeMediaVerdictCache()
+        let engine = SafeMediaEngine(analyzer: analyzer, cache: cache)
+
+        for _ in 0..<2 {
+            _ = await engine.evaluate(
+                .imageFile(fileURL),
+                context: .incomingMessage,
+                policy: .teenMessaging
+            )
+        }
+
+        let counts = await analyzer.counts()
+        XCTAssertEqual(counts.analyze, 1)
+    }
+
+    func testCGImageWithoutCacheKeyBypassesCache() async throws {
+        let image = try XCTUnwrap(Self.makeTestCGImage())
+        let analyzer = AnalyzerProbe(result: .success(.mockSafe))
+        let cache = InMemorySafeMediaVerdictCache()
+        let engine = SafeMediaEngine(analyzer: analyzer, cache: cache)
+
+        for _ in 0..<2 {
+            _ = await engine.evaluate(
+                .cgImage(image),
+                context: .incomingMessage,
+                policy: .teenMessaging
+            )
+        }
+
+        let counts = await analyzer.counts()
+        XCTAssertEqual(counts.analyze, 2)
+    }
+
+    private static func makeTestCGImage() -> CGImage? {
+        CGContext(
+            data: nil,
+            width: 1,
+            height: 1,
+            bitsPerComponent: 8,
+            bytesPerRow: 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        )?.makeImage()
     }
 }
 
