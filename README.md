@@ -119,6 +119,38 @@ imageView.configure(
 
 `SafeMediaImageView` is compiled only when UIKit is available, so pure macOS builds do not expose it.
 
+## Custom Intervention Overlay
+
+Brand the intervention UI without rebuilding the flow. Pass a trailing `overlay` closure; it receives a `SafeMediaOverlayState` and replaces the built-in overlay for every non-allow state (blur, block, unavailable, and load failure):
+
+```swift
+SafeMediaImage(url: imageURL, context: .incomingMessage, policy: .teenMessaging) { state in
+    VStack(spacing: 12) {
+        Text(state.title).font(.headline)
+        Text(state.message).font(.footnote)
+        if state.canReveal {
+            Button("Show anyway") { state.reveal() }
+        }
+        if state.canReport {
+            Button("Report") { state.report() }
+        }
+    }
+    .padding()
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .background(.ultraThickMaterial)
+}
+```
+
+- `state.title` / `state.message` are resolved from your `SafeMediaImageConfiguration` for the current decision; `state.decision` exposes the raw action and reason.
+- `state.reveal()` unblurs and fires `onReveal`. It is a no-op when `state.canReveal` is false — custom overlays cannot bypass `block` or no-reveal policies.
+- The image underneath stays blurred or hidden regardless of what the overlay draws.
+- To ignore the state, write `{ _ in MyOverlay() }`. A bare `{ MyOverlay() }` matches the `onReveal` callback parameter instead of the overlay slot.
+- `SafeMediaOverlayState` has a public initializer, so you can preview and test custom overlays with fabricated decisions.
+
+UIKit: pass `overlayProvider:` to `configure(...)`. The provided view replaces the built-in stack above the redaction blur, is pinned edge-to-edge, and is rebuilt on each reconfigure or new decision.
+
+One source note: `SafeMediaImage` is generic over its overlay. Call sites are unaffected, but explicit type annotations must become `SafeMediaImage<SensitiveMediaOverlay>` (or use `some View`).
+
 ## Direct Analyzer Usage
 
 ```swift

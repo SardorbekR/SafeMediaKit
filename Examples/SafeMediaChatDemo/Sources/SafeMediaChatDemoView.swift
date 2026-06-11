@@ -56,6 +56,11 @@ public struct SafeMediaChatDemoView: View {
                             imageURL: imageURL,
                             engine: unavailableEngine
                         )
+
+                        BrandedOverlayRow(
+                            imageURL: imageURL,
+                            engine: sensitiveEngine
+                        )
                     }
                 }
                 .padding()
@@ -114,6 +119,48 @@ private struct ChatMessageRow: View {
             )
 
             Spacer(minLength: 0)
+        }
+    }
+}
+
+private struct BrandedOverlayRow: View {
+    let imageURL: URL
+    let engine: SafeMediaEngine
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Custom branded overlay")
+                .font(.subheadline.weight(.semibold))
+
+            SafeMediaImage(
+                url: imageURL,
+                engine: engine,
+                context: .incomingMessage,
+                policy: .teenMessaging,
+                onReveal: {
+                    print("Reveal tapped for custom overlay row")
+                }
+            ) { state in
+                VStack(spacing: 10) {
+                    Text("🙈")
+                        .font(.largeTitle)
+                    Text(state.title)
+                        .font(.subheadline.weight(.bold))
+                    if state.canReveal {
+                        Button("Peek anyway") {
+                            state.reveal()
+                        }
+                        .font(.caption.weight(.semibold))
+                        .buttonStyle(.borderedProminent)
+                        .tint(.purple)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(.purple.opacity(0.25))
+                .background(.thickMaterial)
+            }
+            .frame(width: 240, height: 170)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
         }
     }
 }

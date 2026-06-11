@@ -1,6 +1,15 @@
 # Changelog
 
-## 0.1.0 - Unreleased
+## 0.2.0 - Unreleased
+
+- Added a custom overlay slot: `SafeMediaImage` is now generic over its overlay; new `overlay:` initializers receive a `SafeMediaOverlayState`.
+- Added `SafeMediaOverlayState` with resolved copy, `canReveal`/`canReport` flags, and a policy-guarded `reveal()` that cannot bypass `block` or no-reveal policies.
+- Added `overlayProvider:` to `SafeMediaImageView.configure(...)`; the redaction blur always stays beneath custom overlays.
+- Redesigned the default overlays in SwiftUI and UIKit: per-state SF Symbols (`eye.slash.fill`, `lock.fill`, `gearshape.fill`), headline/footnote typography, capsule buttons.
+- Added `SensitiveMediaOverlay.init(state:)`; the memberwise initializer gains an optional `systemImageName:` parameter.
+- Source note: explicit `SafeMediaImage` type annotations must become `SafeMediaImage<SensitiveMediaOverlay>`; initializer call sites are unaffected.
+
+## 0.1.0 - 2026-06-11
 
 - Initial Swift Package scaffold.
 - Added core media source, verdict, policy, availability, and decision models.
