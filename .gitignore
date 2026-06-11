@@ -6,3 +6,4 @@ DerivedData/
 *.xcuserstate
 Package.resolved
 .build-beta/
+.mcp.json
