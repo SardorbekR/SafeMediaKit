@@ -8,6 +8,8 @@ SafeMediaKit is a Swift-native sensitive media intervention toolkit for Apple ap
 
 SafeMediaKit relies on Apple's public `SensitiveContentAnalysis` framework when available. It only works on media your app provides to it. It cannot inspect or modify content inside other apps.
 
+Background reading: [What Apple's SensitiveContentAnalysis actually does (and doesn't)](https://dev.to/sardor_rakhimov/what-apples-sensitivecontentanalysis-actually-does-and-doesnt-1oe2) covers the framework's opt-in reality and where SafeMediaKit fits.
+
 ## What SafeMediaKit Is Not
 
 SafeMediaKit is not a universal iPhone screen filter, Safari content blocker, Network Extension filter, Screen Time shield, backend moderation service, custom Core ML classifier, or telemetry SDK.
