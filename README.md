@@ -16,6 +16,8 @@ SafeMediaKit is not a universal iPhone screen filter, Safari content blocker, Ne
 
 It does not upload media to a server and does not include telemetry.
 
+Note for adopters: Apple's developer agreement prohibits transmitting off the device any information about whether `SensitiveContentAnalysis` flagged a given image or video. SafeMediaKit keeps verdicts in process; keep them local in your app too. Do not log them remotely, sync them, or attach them to report payloads.
+
 ## Installation
 
 Add SafeMediaKit as a Swift Package dependency in Xcode (`File > Add Package Dependencies…`):
