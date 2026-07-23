@@ -26,6 +26,15 @@ private func swiftUIImage(from image: SafeMediaPlatformImage) -> Image {
 }
 #endif
 
+/// A policy-aware image view that evaluates an image before displaying it.
+///
+/// The view keeps the image concealed while it loads and while the engine
+/// evaluates it. Non-allow decisions use either the bundled intervention
+/// overlay or the custom overlay supplied by the host app until a permitted
+/// reveal removes the intervention.
+///
+/// The view accepts local file URLs only. Other URL schemes produce a loading
+/// failure decision using the policy's `failureAction`.
 @available(iOS 17.0, macOS 14.0, macCatalyst 17.0, *)
 public struct SafeMediaImage<Overlay: View>: View {
     private enum LoadState: Equatable {
@@ -52,9 +61,9 @@ public struct SafeMediaImage<Overlay: View>: View {
     @State private var loadState: LoadState = .idle
     @State private var isRevealed = false
 
-    /// Creates an image view with a custom intervention overlay. The overlay
-    /// closure receives a ``SafeMediaOverlayState`` and replaces the built-in
-    /// overlay for every non-allow state.
+    /// Creates an image view for a local file with a custom intervention
+    /// overlay. The overlay closure receives a ``SafeMediaOverlayState`` and
+    /// replaces the built-in overlay for every non-allow state.
     public init(
         url: URL,
         engine: SafeMediaEngine,
@@ -77,7 +86,12 @@ public struct SafeMediaImage<Overlay: View>: View {
         self.overlayContent = overlay
     }
 
-    /// Environment-engine variant of the custom-overlay initializer.
+    /// Creates an image view for a local file with a custom overlay and an
+    /// engine from the environment.
+    ///
+    /// Install the engine with `.environment(\.safeMediaEngine, engine)`. A
+    /// missing engine triggers a debug assertion; builds with assertions
+    /// disabled use `policy.failureAction`.
     public init(
         url: URL,
         context: SafeMediaContext,
@@ -99,6 +113,7 @@ public struct SafeMediaImage<Overlay: View>: View {
         self.overlayContent = overlay
     }
 
+    /// The view's evaluated image, placeholder, and intervention overlay.
     public var body: some View {
         ZStack {
             content
@@ -242,7 +257,7 @@ public struct SafeMediaImage<Overlay: View>: View {
 
         do {
             loadState = .loading
-            let data = try await Self.readData(from: url)
+            let data = try await SafeMediaLocalFileLoader.readData(from: url)
 
             guard !Task.isCancelled else {
                 return
@@ -283,12 +298,6 @@ public struct SafeMediaImage<Overlay: View>: View {
         }
     }
 
-    private static func readData(from url: URL) async throws -> Data {
-        try await Task.detached(priority: .userInitiated) {
-            try Data(contentsOf: url)
-        }.value
-    }
-
     private func failureDecision() -> SafeMediaDecision {
         SafeMediaDecision(
             action: policy.failureAction,
@@ -307,7 +316,8 @@ public struct SafeMediaImage<Overlay: View>: View {
 
 @available(iOS 17.0, macOS 14.0, macCatalyst 17.0, *)
 public extension SafeMediaImage where Overlay == SensitiveMediaOverlay {
-    /// Creates an image view with the bundled default intervention overlay.
+    /// Creates an image view for a local file with the bundled default
+    /// intervention overlay.
     init(
         url: URL,
         engine: SafeMediaEngine,
@@ -331,7 +341,12 @@ public extension SafeMediaImage where Overlay == SensitiveMediaOverlay {
         )
     }
 
-    /// Environment-engine variant with the bundled default overlay.
+    /// Creates an image view for a local file with the bundled overlay and an
+    /// engine from the environment.
+    ///
+    /// Install the engine with `.environment(\.safeMediaEngine, engine)`. A
+    /// missing engine triggers a debug assertion; builds with assertions
+    /// disabled use `policy.failureAction`.
     init(
         url: URL,
         context: SafeMediaContext,

@@ -1,6 +1,12 @@
 #if canImport(UIKit)
 import UIKit
 
+/// A policy-aware UIKit image view that evaluates an image before displaying it.
+///
+/// The view keeps the image hidden while it loads and while the engine
+/// evaluates it. Non-allow decisions show the bundled intervention overlay or
+/// a custom overlay supplied by the host app until a permitted reveal removes
+/// the intervention.
 @available(iOS 17.0, macCatalyst 17.0, *)
 @MainActor
 public final class SafeMediaImageView: UIView {
@@ -25,11 +31,13 @@ public final class SafeMediaImageView: UIView {
     private var customOverlayView: UIView?
     private var loadGeneration = 0
 
+    /// Creates a safe media image view with the given frame.
     public override init(frame: CGRect) {
         super.init(frame: frame)
         setUp()
     }
 
+    /// Creates a safe media image view from an archived interface description.
     public required init?(coder: NSCoder) {
         super.init(coder: coder)
         setUp()
@@ -39,13 +47,18 @@ public final class SafeMediaImageView: UIView {
         task?.cancel()
     }
 
-    /// Configures the view for an image URL.
+    /// Configures the view for a local image file URL. Other URL schemes
+    /// produce a loading failure decision using the policy's `failureAction`.
     ///
     /// Pass `overlayProvider` to replace the built-in message/buttons overlay
     /// with a custom view. The provided view is pinned edge-to-edge above the
     /// redaction blur — the blur itself always stays underneath, so custom
-    /// overlays cannot remove redaction. The provider is invoked again on
-    /// every reconfigure or new decision.
+    /// overlays cannot remove redaction. For each non-allow decision, the
+    /// provider builds a new overlay view.
+    ///
+    /// Reconfiguring cancels the previous view task, discards any stale result,
+    /// clears its image and decision, and keeps the new image hidden until its
+    /// decision is applied.
     public func configure(
         imageURL: URL,
         engine: SafeMediaEngine,
@@ -78,7 +91,7 @@ public final class SafeMediaImageView: UIView {
             // can deinit (and cancel this task) while work is in flight.
             let loadedImage: UIImage?
             do {
-                let data = try await SafeMediaImageView.readData(from: imageURL)
+                let data = try await SafeMediaLocalFileLoader.readData(from: imageURL)
                 loadedImage = UIImage(data: data)
             } catch {
                 loadedImage = nil
@@ -226,12 +239,6 @@ public final class SafeMediaImageView: UIView {
     ) -> NSLayoutConstraint {
         constraint.priority = priority
         return constraint
-    }
-
-    private static func readData(from url: URL) async throws -> Data {
-        try await Task.detached(priority: .userInitiated) {
-            try Data(contentsOf: url)
-        }.value
     }
 
     private func apply(_ decision: SafeMediaDecision) {

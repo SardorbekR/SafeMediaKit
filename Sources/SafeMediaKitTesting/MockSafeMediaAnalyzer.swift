@@ -1,18 +1,19 @@
 import SafeMediaKit
 
-/// Test analyzer returning forced results.
+/// A configurable analyzer for tests and previews.
 ///
-/// `analyze(_:)` ignores `availabilityResult` by design: `SafeMediaEngine`
-/// consults `availability()` as a preflight and never calls `analyze` when it
-/// reports unavailable. Calling `analyze` directly bypasses that preflight.
-///
-/// @unchecked: `Result<_, any Error>` holds a non-Sendable existential (the
-/// PRD-specified shape). Safe in practice — value-type copies; only sharing a
-/// mutable non-Sendable error instance across threads could race.
-public struct MockSafeMediaAnalyzer: SafeMediaAnalyzing, @unchecked Sendable {
+/// ``analyze(_:)`` ignores ``availabilityResult``. `SafeMediaEngine` checks
+/// ``availability()`` before requesting analysis, while direct calls to
+/// ``analyze(_:)`` bypass that preflight.
+public struct MockSafeMediaAnalyzer: SafeMediaAnalyzing {
+    /// The success value or error produced by ``analyze(_:)``.
     public var result: Result<SafeMediaVerdict, any Error>
+
+    /// The value returned by ``availability()``.
     public var availabilityResult: SafeMediaAvailability
 
+    /// Creates an analyzer with configurable analysis and availability
+    /// responses.
     public init(
         result: Result<SafeMediaVerdict, any Error>,
         availability: SafeMediaAvailability = .available
@@ -21,10 +22,13 @@ public struct MockSafeMediaAnalyzer: SafeMediaAnalyzing, @unchecked Sendable {
         self.availabilityResult = availability
     }
 
+    /// Returns the configured ``availabilityResult``.
     public func availability() async -> SafeMediaAvailability {
         availabilityResult
     }
 
+    /// Returns the configured value or throws the configured error without
+    /// inspecting the source.
     public func analyze(_ source: SafeMediaSource) async throws -> SafeMediaVerdict {
         try result.get()
     }
