@@ -8,13 +8,18 @@ import Foundation
 /// The public initializer lets host apps construct states with fabricated
 /// decisions for previews and tests of their custom overlays.
 public struct SafeMediaOverlayState: Sendable {
+    /// The decision the overlay represents.
     public let decision: SafeMediaDecision
+
+    /// The copy and control configuration for the overlay.
     public let configuration: SafeMediaImageConfiguration
 
     /// Copy resolved from `configuration` for this decision: unavailable copy
     /// for `.unavailableByPolicy`, blocked copy for `.block`, warning copy
     /// otherwise.
     public let title: String
+
+    /// The resolved explanatory message for the current decision.
     public let message: String
 
     /// True only when an image is loaded, the action is `.blurWithReveal`,
@@ -32,6 +37,7 @@ public struct SafeMediaOverlayState: Sendable {
     /// Fires the host `onReport` callback. Not gated on `canReport`.
     public let report: @MainActor @Sendable () -> Void
 
+    /// Creates the state passed to a custom or bundled intervention overlay.
     public init(
         decision: SafeMediaDecision,
         configuration: SafeMediaImageConfiguration,

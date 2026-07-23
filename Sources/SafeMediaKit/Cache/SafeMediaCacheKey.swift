@@ -1,18 +1,22 @@
 import Foundation
 
+/// A stable identifier for a cached media verdict.
 public struct SafeMediaCacheKey: Sendable, Hashable {
+    /// The string value that identifies the cached media.
     public let rawValue: String
 
+    /// Creates a cache key from a string value.
     public init(rawValue: String) {
         self.rawValue = rawValue
     }
 }
 
+/// Derives cache keys from file URLs.
 public enum SafeMediaCacheKeyFactory {
     /// Builds a key from the file's standardized path, size, and modification
-    /// date. When metadata is unreadable the key degrades to path-only
-    /// (`unknown` markers) and cannot detect file content changes — prefer
-    /// supplying your own stable key in that situation.
+    /// date without hashing its contents. When metadata is unreadable the key
+    /// degrades to path-only (`unknown` markers) and cannot detect file content
+    /// changes — prefer supplying your own stable key in that situation.
     public static func fileURL(_ url: URL) -> SafeMediaCacheKey {
         let standardizedURL = url.standardizedFileURL
         let metadata = fileMetadata(for: standardizedURL)

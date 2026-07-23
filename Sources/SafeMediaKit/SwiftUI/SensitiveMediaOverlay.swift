@@ -1,6 +1,7 @@
 #if canImport(SwiftUI)
 import SwiftUI
 
+/// The bundled SwiftUI intervention overlay for a non-allow decision.
 @available(iOS 17.0, macOS 14.0, macCatalyst 17.0, *)
 public struct SensitiveMediaOverlay: View {
     private let title: String
@@ -28,6 +29,7 @@ public struct SensitiveMediaOverlay: View {
         )
     }
 
+    /// Builds an overlay from resolved copy, controls, and action handlers.
     public init(
         title: String,
         message: String,
@@ -50,6 +52,7 @@ public struct SensitiveMediaOverlay: View {
         self.onReport = onReport
     }
 
+    /// The adaptive warning content and available actions.
     public var body: some View {
         // Small thumbnails cannot fit icon + wrapped text + buttons; the
         // compact variant drops the icon and tightens padding so the message

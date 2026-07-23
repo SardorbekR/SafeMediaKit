@@ -1,7 +1,10 @@
+/// Evaluates media, consults an optional cache, and applies a policy to each
+/// verdict.
 public actor SafeMediaEngine {
     private let analyzer: any SafeMediaAnalyzing
     private let cache: (any SafeMediaVerdictCaching)?
 
+    /// Creates an engine backed by an analyzer and an optional verdict cache.
     public init(
         analyzer: any SafeMediaAnalyzing,
         cache: (any SafeMediaVerdictCaching)? = nil
@@ -16,6 +19,15 @@ public actor SafeMediaEngine {
     /// surface as a decision using `policy.failureAction` with reason
     /// `.analysisFailed`. Callers that cancel evaluations should discard the
     /// returned decision (the bundled views guard with `Task.isCancelled`).
+    ///
+    /// - Parameters:
+    ///   - source: The local media to evaluate.
+    ///   - context: The product context for the resulting decision.
+    ///   - policy: The rules used to map the verdict to an action.
+    ///   - cacheKey: A stable identity for cached analysis. When `nil`, the
+    ///     engine derives a key when file size or modification-date metadata is
+    ///     available and otherwise skips caching.
+    /// - Returns: A policy decision for the evaluation outcome.
     public func evaluate(
         _ source: SafeMediaSource,
         context: SafeMediaContext,

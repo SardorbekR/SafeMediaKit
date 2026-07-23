@@ -1,6 +1,8 @@
 import SafeMediaKit
 
+/// Deterministic verdict fixtures for tests and previews.
 public extension SafeMediaVerdict {
+    /// An available verdict for media classified as safe.
     static let mockSafe = SafeMediaVerdict(
         sensitivity: .safe,
         contentTypes: [],
@@ -8,6 +10,7 @@ public extension SafeMediaVerdict {
         availability: .available
     )
 
+    /// An available nudity verdict with sensitivity indication guidance.
     static let mockSensitive = SafeMediaVerdict(
         sensitivity: .sensitive,
         contentTypes: [.nudity],
@@ -19,6 +22,7 @@ public extension SafeMediaVerdict {
         availability: .available
     )
 
+    /// An unknown verdict representing analysis disabled by policy.
     static let mockUnknownUnavailable = SafeMediaVerdict(
         sensitivity: .unknown,
         contentTypes: [],

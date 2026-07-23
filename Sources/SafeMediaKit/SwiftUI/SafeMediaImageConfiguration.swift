@@ -1,19 +1,44 @@
 #if canImport(SwiftUI)
 import SwiftUI
 
+/// Text, controls, and presentation settings for the bundled media views.
 public struct SafeMediaImageConfiguration: Sendable, Hashable {
+    /// The blur radius used by ``SafeMediaImage``.
     public var blurRadius: Double
+
+    /// Whether bundled overlays can show a report button when policy permits it.
     public var showsReportButton: Bool
+
+    /// The title used when unavailable and blocking copy don't apply.
     public var warningTitle: String
+
+    /// The message used when unavailable and blocking copy don't apply.
     public var warningMessage: String
+
+    /// The title used for an unavailable-by-policy decision.
     public var unavailableTitle: String
+
+    /// The message used for an unavailable-by-policy decision.
     public var unavailableMessage: String
+
+    /// The title used for a blocked decision other than an unavailable one.
     public var blockedTitle: String
+
+    /// The message used for a blocked decision other than an unavailable one.
     public var blockedMessage: String
+
+    /// The text and accessibility label ``SafeMediaImage`` shows while loading
+    /// or evaluating media.
     public var loadingTitle: String
+
+    /// The title of the bundled reveal button.
     public var revealButtonTitle: String
+
+    /// The title of the bundled report button.
     public var reportButtonTitle: String
 
+    /// Creates a configuration for the bundled media views. Negative initial
+    /// blur radii are clamped to zero.
     public init(
         blurRadius: Double = 18,
         showsReportButton: Bool = true,
@@ -42,6 +67,7 @@ public struct SafeMediaImageConfiguration: Sendable, Hashable {
 }
 
 public extension SafeMediaImageConfiguration {
+    /// The standard warning, unavailable, blocked, loading, and button copy.
     static let `default` = SafeMediaImageConfiguration()
 }
 #endif
