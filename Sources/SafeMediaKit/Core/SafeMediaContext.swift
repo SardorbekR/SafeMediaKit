@@ -23,4 +23,7 @@ public enum SafeMediaContext: Sendable, Hashable {
 
     /// A preview generated from a video file.
     case videoFilePreview
+
+    /// A live video stream, including a video call or live broadcast.
+    case liveVideo
 }

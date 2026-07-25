@@ -40,6 +40,29 @@ final class SafeMediaEngineTests: XCTestCase {
         XCTAssertEqual(decision.reason, .sensitiveDetected)
     }
 
+    func testFiniteEvaluationDoesNotUseLiveStreamAction() async {
+        let policy = SafeMediaPolicy(
+            sensitiveAction: .block,
+            unknownAction: .allow,
+            unavailableAction: .allow,
+            failureAction: .allow,
+            allowReveal: false,
+            allowReport: false,
+            streamSensitiveAction: .allow
+        )
+        let analyzer = MockSafeMediaAnalyzer(result: .success(.mockSensitive))
+        let engine = SafeMediaEngine(analyzer: analyzer)
+
+        let decision = await engine.evaluate(
+            .imageFile(URL(fileURLWithPath: "/tmp/live-context-image.png")),
+            context: .liveVideo,
+            policy: policy
+        )
+
+        XCTAssertEqual(decision.action, .block)
+        XCTAssertEqual(decision.context, .liveVideo)
+    }
+
     func testUnknownAvailableVerdictUsesPolicyUnknownAction() async {
         let verdict = SafeMediaVerdict(
             sensitivity: .unknown,

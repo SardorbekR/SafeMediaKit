@@ -9,6 +9,7 @@ final class SafeMediaPolicyTests: XCTestCase {
         XCTAssertEqual(policy.unknownAction, .allow)
         XCTAssertEqual(policy.unavailableAction, .allow)
         XCTAssertEqual(policy.failureAction, .allow)
+        XCTAssertEqual(policy.streamSensitiveAction, .allow)
         XCTAssertTrue(policy.allowReveal)
         XCTAssertFalse(policy.allowReport)
     }
@@ -20,6 +21,7 @@ final class SafeMediaPolicyTests: XCTestCase {
         XCTAssertEqual(policy.unknownAction, .blurWithReveal)
         XCTAssertEqual(policy.unavailableAction, .blurWithReveal)
         XCTAssertEqual(policy.failureAction, .blurWithReveal)
+        XCTAssertEqual(policy.streamSensitiveAction, .blurWithReveal)
         XCTAssertTrue(policy.allowReveal)
         XCTAssertTrue(policy.allowReport)
     }
@@ -31,6 +33,7 @@ final class SafeMediaPolicyTests: XCTestCase {
         XCTAssertEqual(policy.unknownAction, .block)
         XCTAssertEqual(policy.unavailableAction, .block)
         XCTAssertEqual(policy.failureAction, .block)
+        XCTAssertEqual(policy.streamSensitiveAction, .interruptVideo)
         XCTAssertFalse(policy.allowReveal)
         XCTAssertTrue(policy.allowReport)
     }
@@ -42,6 +45,7 @@ final class SafeMediaPolicyTests: XCTestCase {
         XCTAssertEqual(policy.unknownAction, .block)
         XCTAssertEqual(policy.unavailableAction, .block)
         XCTAssertEqual(policy.failureAction, .block)
+        XCTAssertEqual(policy.streamSensitiveAction, .interruptVideo)
         XCTAssertFalse(policy.allowReveal)
         XCTAssertTrue(policy.allowReport)
     }
@@ -58,5 +62,38 @@ final class SafeMediaPolicyTests: XCTestCase {
         )
 
         XCTAssertEqual(policy.blurRadius, 0)
+        XCTAssertNil(policy.streamSensitiveAction)
+    }
+
+    func testOriginalInitializerRemainsUsableAsFunctionValue() {
+        typealias PolicyFactory = (
+            SafeMediaAction,
+            SafeMediaAction,
+            SafeMediaAction,
+            SafeMediaAction,
+            Bool,
+            Bool,
+            Double
+        ) -> SafeMediaPolicy
+        let factory: PolicyFactory = SafeMediaPolicy.init
+
+        let policy = factory(
+            .block,
+            .blur,
+            .allow,
+            .muteAudio,
+            false,
+            true,
+            12
+        )
+
+        XCTAssertEqual(policy.sensitiveAction, .block)
+        XCTAssertEqual(policy.unknownAction, .blur)
+        XCTAssertEqual(policy.unavailableAction, .allow)
+        XCTAssertEqual(policy.failureAction, .muteAudio)
+        XCTAssertFalse(policy.allowReveal)
+        XCTAssertTrue(policy.allowReport)
+        XCTAssertNil(policy.streamSensitiveAction)
+        XCTAssertEqual(policy.blurRadius, 12)
     }
 }

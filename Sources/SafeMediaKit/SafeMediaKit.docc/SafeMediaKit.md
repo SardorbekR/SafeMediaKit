@@ -1,10 +1,10 @@
 # ``SafeMediaKit``
 
-Use Apple's SensitiveContentAnalysis framework through a policy, caching, and UI layer that keeps analysis on device and keeps unreviewed media hidden until a decision is ready.
+Use Apple's SensitiveContentAnalysis framework through on-device policy, caching, live-stream, and UI layers.
 
 ## Overview
 
-SafeMediaKit turns an analysis outcome into an app-specific ``SafeMediaDecision``. Its bundled SwiftUI and UIKit views apply that decision before displaying media, and an optional cache avoids repeating analysis within the current process.
+SafeMediaKit turns an analysis outcome into an app-specific ``SafeMediaDecision``. Its bundled SwiftUI and UIKit image views apply that decision before displaying media, and an optional finite-media cache avoids repeating analysis within the current process. On iOS 26 and later, the stream engine applies live-video detections while Apple's attached pipeline censors subsequent frames.
 
 > Important: Apple's developer agreement prohibits transmitting information about whether SensitiveContentAnalysis flagged an image or video off the device. Keep verdicts and decisions local. Do not send them to analytics, remote logs, synced storage, or report payloads.
 
@@ -16,6 +16,7 @@ Start by enabling Apple's capability and creating an engine. For deterministic p
 
 - <doc:GettingStarted>
 - <doc:TestingWithoutExplicitContent>
+- <doc:IntegratingLiveVideoStreams>
 
 ### Engine
 
@@ -23,6 +24,14 @@ Start by enabling Apple's capability and creating an engine. For deterministic p
 - ``AppleSensitiveContentAnalyzer``
 - ``InMemorySafeMediaVerdictCache``
 - ``SafeMediaCacheKey``
+
+### Live Video
+
+- ``SafeMediaStreamEngine``
+- ``SafeMediaStreamAnalyzing``
+- ``SafeMediaStreamEvent``
+- ``SafeMediaStreamSession``
+- ``AppleSensitiveContentStreamAnalyzer``
 
 ### Policy
 
@@ -33,6 +42,7 @@ Start by enabling Apple's capability and creating an engine. For deterministic p
 - ``SafeMediaPolicy/classroomStrict``
 - ``SafeMediaContext``
 - ``SafeMediaDecision``
+- ``SafeMediaPolicy/streamSensitiveAction``
 
 ### SwiftUI
 

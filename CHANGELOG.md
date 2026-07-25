@@ -1,6 +1,21 @@
 # Changelog
 
-## 0.2.1 - Unreleased
+## Unreleased
+
+- Added `SafeMediaStreamEngine`, `SafeMediaStreamAnalyzing`, and the iOS 26+
+  `AppleSensitiveContentStreamAnalyzer` for fail-closed monitoring of attached
+  capture and VideoToolbox decompression pipelines without verdict caching.
+- Added stream-specific policy actions, `.liveVideo` context, ordered mock
+  streams in `SafeMediaKitTesting`, and a live-video DocC integration guide.
+- Added a DocC catalog, getting-started guide, testing guide, and Swift Package
+  Index documentation configuration.
+- Unexpected loss of an attached analysis stream now produces an
+  `.analysisFailed` decision; blurred streams cannot consume a newer verdict
+  until the host explicitly continues them.
+- Source note: exhaustive `SafeMediaContext` switches must handle `.liveVideo`.
+  The package now requires Xcode 26 or later with Swift 6.2 or later.
+
+## 0.2.1 - 2026-06-11
 
 - VoiceOver now exposes the default overlay as one text element plus separately focusable Show/Report buttons, instead of a single combined element with custom actions. Matches the UIKit overlay's accessibility shape and makes the actions discoverable without the custom-actions gesture.
 

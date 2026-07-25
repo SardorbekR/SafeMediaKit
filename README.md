@@ -4,7 +4,10 @@
 [![Swift Versions](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FSardorbekR%2FSafeMediaKit%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/SardorbekR/SafeMediaKit)
 [![Platforms](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FSardorbekR%2FSafeMediaKit%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/SardorbekR/SafeMediaKit)
 
-SafeMediaKit is a Swift-native sensitive media intervention toolkit for Apple apps. It helps apps analyze user-provided images and videos before display and present privacy-preserving blur, reveal, block, and report flows.
+SafeMediaKit is a Swift-native sensitive media intervention toolkit for Apple
+apps. It helps apps analyze user-provided images and video files before display,
+monitor attached live-video pipelines, and apply local blur, reveal, block,
+interrupt, mute, and report flows.
 
 SafeMediaKit relies on Apple's public `SensitiveContentAnalysis` framework when available. It only works on media your app provides to it. It cannot inspect or modify content inside other apps.
 
@@ -45,6 +48,10 @@ SafeMediaKit targets:
 - Mac Catalyst 17+
 
 The package does not claim watchOS, tvOS, or visionOS support.
+
+Live-stream analysis through Apple's `SCVideoStreamAnalyzer` is available on
+iOS 26+ only. Apple marks that API unavailable on macOS and Mac Catalyst.
+This version requires Xcode 26 or later with Swift 6.2 or later to build.
 
 ## Entitlement Setup
 
@@ -181,16 +188,59 @@ let decision = await engine.evaluate(
 
 `AppleSensitiveContentAnalyzer` is only available on platforms where the `SensitiveContentAnalysis` framework can be imported (iOS 17+, macOS 14+, Mac Catalyst 17+).
 
+## Live Video on iOS 26+
+
+`SafeMediaStreamEngine` monitors an attached capture input or VideoToolbox
+decompression session without caching any stream verdict. Its mandatory
+`@MainActor` handler is the first UI intervention point:
+
+```swift
+import SafeMediaKit
+import VideoToolbox
+
+@available(iOS 26.0, *)
+@MainActor
+func startIncomingVideo(
+    participantID: String,
+    decompressionSession: VTDecompressionSession
+) async -> SafeMediaStreamSession {
+    let analyzer = AppleSensitiveContentStreamAnalyzer(
+        participantID: participantID,
+        decompressionSession: decompressionSession
+    )
+    let engine = SafeMediaStreamEngine(analyzer: analyzer)
+
+    return await engine.start(policy: .teenMessaging) { event in
+        switch event {
+        case .preparing:
+            concealStream()
+        case .ready:
+            // Attachment is ready; this is not a safe-frame verdict.
+            showStream()
+        case .decision(let decision):
+            applySynchronously(decision)
+        }
+    }
+}
+```
+
+While analysis remains attached, Apple interrupts capture frames or blanks
+decompressed frames after a detection until `continueStream()` is called.
+Apply concealment directly in the handler before returning, and conceal or stop
+the host pipeline before cancellation or replacement because detaching analysis
+can remove that native protection. See the DocC article “Integrating Live Video
+Streams” for lifecycle, reveal, cancellation, and audio-guidance details.
+
 ## Policies
 
 SafeMediaKit separates sensitive, unknown, unavailable, and failure behavior:
 
-| Policy | Sensitive | Unknown | Unavailable | Failure | Reveal | Report |
-|---|---|---|---|---|---|---|
-| `adultMinimal` | `blurWithReveal` | `allow` | `allow` | `allow` | yes | no |
-| `teenMessaging` | `blurWithReveal` | `blurWithReveal` | `blurWithReveal` | `blurWithReveal` | yes | yes |
-| `childStrict` | `block` | `block` | `block` | `block` | no | yes |
-| `classroomStrict` | `block` | `block` | `block` | `block` | no | yes |
+| Policy | Finite sensitive | Live sensitive | Unknown | Unavailable | Failure | Reveal | Report |
+|---|---|---|---|---|---|---|---|
+| `adultMinimal` | `blurWithReveal` | `allow` | `allow` | `allow` | `allow` | yes | no |
+| `teenMessaging` | `blurWithReveal` | `blurWithReveal` | `blurWithReveal` | `blurWithReveal` | `blurWithReveal` | yes | yes |
+| `childStrict` | `block` | `interruptVideo` | `block` | `block` | `block` | no | yes |
+| `classroomStrict` | `block` | `interruptVideo` | `block` | `block` | `block` | no | yes |
 
 Preset names are UX defaults, not legal classifications, age-verification mechanisms, or safety guarantees. Host apps remain responsible for account policy, parental consent, and age-assurance requirements.
 
@@ -207,12 +257,20 @@ import SafeMediaKitTesting
 let engine = SafeMediaEngine(
     analyzer: MockSafeMediaAnalyzer(result: .success(.mockSensitive))
 )
+
+@MainActor
+func makeMockStreamEngine() -> SafeMediaStreamEngine {
+    SafeMediaStreamEngine(
+        analyzer: MockStreamAnalyzer(events: [.success(.mockSensitiveVideo)])
+    )
+}
 ```
 
 Mock fixtures include:
 
 - `.mockSafe`
 - `.mockSensitive`
+- `.mockSensitiveVideo`
 - `.mockUnknownUnavailable`
 
 ## Testing Apple's Analyzer
@@ -264,7 +322,9 @@ The same `configuration:` parameter exists on `SafeMediaImageView.configure(...)
 
 ## Privacy
 
-SafeMediaKit processes only local media that your app passes to it. The package does not download remote URLs, upload media, log media URLs by default, or include analytics.
+SafeMediaKit processes local files, in-memory media, and attached live-video
+inputs on device. The package does not download remote URLs, upload media, log
+media URLs by default, include analytics, or cache live-stream verdicts.
 
 ## Xcode 27 Category Mapping
 
@@ -273,15 +333,15 @@ When compiled with an SDK that exposes `SCSensitivityAnalysis.detectedTypes`, Sa
 ## Roadmap
 
 - Video thumbnail and `AVPlayer` polish
-- Live stream analysis through `SCVideoStreamAnalyzer`
+- A bundled live-stream intervention view, if adopter demand warrants one
 - More category-aware policies when newer Apple APIs are broadly available
-- DocC documentation
 - Snapshot/UI tests
 
 ## References
 
 - SensitiveContentAnalysis: https://developer.apple.com/documentation/sensitivecontentanalysis
 - `SCSensitivityAnalyzer`: https://developer.apple.com/documentation/sensitivecontentanalysis/scsensitivityanalyzer
+- `SCVideoStreamAnalyzer`: https://developer.apple.com/documentation/sensitivecontentanalysis/scvideostreamanalyzer
 - Entitlement: https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.sensitivecontentanalysis.client
 - Sensitive Content Warning settings: https://support.apple.com/guide/iphone/receive-warnings-about-sensitive-content-iphede874992/ios
 - `UIApplication.openSettingsURLString`: https://developer.apple.com/documentation/uikit/uiapplication/opensettingsurlstring

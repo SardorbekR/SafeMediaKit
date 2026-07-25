@@ -11,6 +11,22 @@ enum SCAResultMapper {
         )
     }
 
+    #if os(iOS) && !targetEnvironment(macCatalyst)
+    @available(iOS 26.0, *)
+    static func mapStream(_ analysis: SCSensitivityAnalysis) -> SafeMediaVerdict {
+        SafeMediaVerdict(
+            sensitivity: analysis.isSensitive ? .sensitive : .safe,
+            contentTypes: contentTypes(from: analysis),
+            guidance: SafeMediaGuidance(
+                shouldIndicateSensitivity: analysis.shouldIndicateSensitivity,
+                shouldInterruptVideo: analysis.shouldInterruptVideo,
+                shouldMuteAudio: analysis.shouldMuteAudio
+            ),
+            availability: .available
+        )
+    }
+    #endif
+
     private static func contentTypes(
         from analysis: SCSensitivityAnalysis
     ) -> Set<SafeMediaContentType> {

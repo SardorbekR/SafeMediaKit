@@ -20,8 +20,30 @@ The included fixtures cover the common states:
 - `mockSafe` produces an available, non-sensitive verdict.
 - `mockSensitive` produces an available sensitive verdict.
 - `mockUnknownUnavailable` produces an unknown verdict with analysis disabled.
+- `mockSensitiveVideo` produces a sensitive stream verdict with all three
+  video guidance flags enabled.
 
 Use these values in unit tests and previews to verify policy decisions, blur and block states, reveal behavior, report controls, and unavailable-state copy. They are deterministic and don't depend on entitlements, device settings, or Apple's model.
+
+For live-video flows, `MockStreamAnalyzer` can emit an ordered script without
+explicit content:
+
+```swift
+@MainActor
+func makeMockStreamEngine() -> SafeMediaStreamEngine {
+    let analyzer = MockStreamAnalyzer(
+        events: [.success(.mockSafe), .success(.mockSensitiveVideo)]
+    )
+    return SafeMediaStreamEngine(analyzer: analyzer)
+}
+```
+
+Each start creates a fresh event stream. For cancellation tests, use the
+`makeEventStream` initializer with a manually controlled
+`AsyncThrowingStream`; no delays or real media are required. A successful
+script remains active until the session is cancelled, just like a live stream.
+Sensitive script entries pause delivery until the engine or test calls
+`continueStream()`; a scripted failure ends the stream immediately.
 
 ## Test Apple's analyzer with its QR profile
 

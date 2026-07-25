@@ -1,5 +1,7 @@
 version: 1
 builder:
   configs:
+    # platform: ios is required, not cosmetic. The live-stream analyzer is
+    # iOS-only, so a macOS documentation build reports its symbols as unresolved.
     - documentation_targets: [SafeMediaKit, SafeMediaKitTesting]
       platform: ios
