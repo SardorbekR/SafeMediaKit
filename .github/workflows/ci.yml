@@ -7,12 +7,18 @@ on:
 
 jobs:
   test:
-    runs-on: macos-latest
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v5
       - name: Swift version
         run: swift --version
       - name: Build
         run: swift build
+      - name: Build for iOS
+        run: >-
+          xcodebuild build
+          -scheme SafeMediaKit
+          -destination 'generic/platform=iOS'
+          CODE_SIGNING_ALLOWED=NO
       - name: Test
         run: swift test
