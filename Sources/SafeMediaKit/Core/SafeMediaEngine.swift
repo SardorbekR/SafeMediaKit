@@ -74,23 +74,14 @@ public actor SafeMediaEngine {
                 policy: policy
             )
         } catch {
-            let verdict = SafeMediaVerdict(
-                sensitivity: .unknown,
-                contentTypes: [],
-                guidance: .none,
-                availability: .available
-            )
-            return SafeMediaDecision(
-                action: policy.failureAction,
-                verdict: verdict,
+            return SafeMediaEngine.failureDecision(
                 context: context,
-                policy: policy,
-                reason: .analysisFailed
+                policy: policy
             )
         }
     }
 
-    private static func decision(
+    static func decision(
         for verdict: SafeMediaVerdict,
         context: SafeMediaContext,
         policy: SafeMediaPolicy
@@ -121,6 +112,24 @@ public actor SafeMediaEngine {
             context: context,
             policy: policy,
             reason: reason
+        )
+    }
+
+    static func failureDecision(
+        context: SafeMediaContext,
+        policy: SafeMediaPolicy
+    ) -> SafeMediaDecision {
+        SafeMediaDecision(
+            action: policy.failureAction,
+            verdict: SafeMediaVerdict(
+                sensitivity: .unknown,
+                contentTypes: [],
+                guidance: .none,
+                availability: .available
+            ),
+            context: context,
+            policy: policy,
+            reason: .analysisFailed
         )
     }
 }
