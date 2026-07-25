@@ -15,7 +15,12 @@ public enum SafeMediaAction: Sendable, Hashable {
     /// Interrupt the active video stream or its delivery.
     case interruptVideo
 
-    /// Mute the current audio stream.
+    /// Mute the current audio stream and leave the video visible.
+    ///
+    /// This is an audio-only intervention. Used as a live-video action, it
+    /// resumes the analyzer's stream, which removes Apple's automatic video
+    /// censorship. Choose `blur`, `blurWithReveal`, `block`, or
+    /// `interruptVideo` when the video itself must stay concealed.
     case muteAudio
 }
 
@@ -41,6 +46,11 @@ public struct SafeMediaPolicy: Sendable, Hashable {
     /// `sensitiveAction`, even when its context is ``SafeMediaContext/liveVideo``.
     /// The built-in presets provide stream-specific values without changing
     /// their image and file-video behavior.
+    ///
+    /// `allow` and `muteAudio` resume the analyzer as soon as the handler
+    /// returns, which removes Apple's automatic video censorship and makes the
+    /// detected video visible again. Only `blur`, `blurWithReveal`, `block`,
+    /// and `interruptVideo` keep the video concealed.
     public var streamSensitiveAction: SafeMediaAction?
 
     /// Whether a blur-with-reveal decision may expose a reveal control.
