@@ -38,16 +38,9 @@ final class SafeMediaPolicyTests: XCTestCase {
         XCTAssertTrue(policy.allowReport)
     }
 
-    func testClassroomStrictPresetBlocksSensitiveContent() {
-        let policy = SafeMediaPolicy.classroomStrict
-
-        XCTAssertEqual(policy.sensitiveAction, .block)
-        XCTAssertEqual(policy.unknownAction, .block)
-        XCTAssertEqual(policy.unavailableAction, .block)
-        XCTAssertEqual(policy.failureAction, .block)
-        XCTAssertEqual(policy.streamSensitiveAction, .interruptVideo)
-        XCTAssertFalse(policy.allowReveal)
-        XCTAssertTrue(policy.allowReport)
+    @available(*, deprecated)
+    func testClassroomStrictIsAnAliasForChildStrict() {
+        XCTAssertEqual(SafeMediaPolicy.classroomStrict, SafeMediaPolicy.childStrict)
     }
 
     func testPolicyClampsNegativeBlurRadius() {

@@ -12,6 +12,11 @@
 - Unexpected loss of an attached analysis stream now produces an
   `.analysisFailed` decision; blurred streams cannot consume a newer verdict
   until the host explicitly continues them.
+- Deprecated `classroomStrict` in favor of `childStrict`. The two presets have
+  always been identical in every field, and classroom deployment is expressed
+  through `SafeMediaContext.classroomSubmission` and host-app configuration
+  rather than a separate policy. The alias is scheduled for removal no earlier
+  than 1.0.
 - Source note: exhaustive `SafeMediaContext` switches must handle `.liveVideo`.
   The package now requires Xcode 26 or later with Swift 6.2 or later.
 

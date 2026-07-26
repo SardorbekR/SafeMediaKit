@@ -217,7 +217,6 @@ without changing its still-image or file-video behavior. A custom policy with a
 | `adultMinimal` | Allow and continue |
 | `teenMessaging` | Blur with an app-controlled reveal path |
 | `childStrict` | Interrupt the stream |
-| `classroomStrict` | Interrupt the stream |
 
 Unknown, unavailable, and failure events continue to use their existing policy
 knobs. The Apple guidance in ``SafeMediaVerdict/guidance`` remains advisory and

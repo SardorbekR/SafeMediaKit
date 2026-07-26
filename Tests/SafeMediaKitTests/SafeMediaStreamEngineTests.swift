@@ -55,8 +55,7 @@ final class SafeMediaStreamEngineTests: XCTestCase {
         let cases: [(SafeMediaPolicy, SafeMediaAction)] = [
             (.adultMinimal, .allow),
             (.teenMessaging, .blurWithReveal),
-            (.childStrict, .block),
-            (.classroomStrict, .block)
+            (.childStrict, .block)
         ]
 
         for (policy, expectedAction) in cases {
@@ -103,8 +102,7 @@ final class SafeMediaStreamEngineTests: XCTestCase {
         let cases: [(SafeMediaPolicy, SafeMediaAction)] = [
             (.adultMinimal, .allow),
             (.teenMessaging, .blurWithReveal),
-            (.childStrict, .interruptVideo),
-            (.classroomStrict, .interruptVideo)
+            (.childStrict, .interruptVideo)
         ]
 
         for (policy, expectedAction) in cases {

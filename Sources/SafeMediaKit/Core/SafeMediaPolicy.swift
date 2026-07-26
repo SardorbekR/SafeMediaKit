@@ -137,8 +137,12 @@ public extension SafeMediaPolicy {
         streamSensitiveAction: .blurWithReveal
     )
 
-    /// A strict preset that blocks sensitive finite media and interrupts
-    /// sensitive live video. Unknown, unavailable, and failed states block.
+    /// A strict preset for parent-managed child accounts and school-managed
+    /// devices.
+    ///
+    /// Blocks sensitive finite media, interrupts sensitive live video, and
+    /// blocks unknown, unavailable, and failed states. It offers no reveal.
+    /// Both deployments want the same fail-closed interventions.
     static let childStrict = SafeMediaPolicy(
         sensitiveAction: .block,
         unknownAction: .block,
@@ -149,15 +153,16 @@ public extension SafeMediaPolicy {
         streamSensitiveAction: .interruptVideo
     )
 
-    /// A strict classroom preset that interrupts sensitive live video and
-    /// blocks every non-safe finite, unknown, unavailable, or failed state.
-    static let classroomStrict = SafeMediaPolicy(
-        sensitiveAction: .block,
-        unknownAction: .block,
-        unavailableAction: .block,
-        failureAction: .block,
-        allowReveal: false,
-        allowReport: true,
-        streamSensitiveAction: .interruptVideo
+    /// A deprecated alias for ``childStrict``.
+    ///
+    /// The two presets have always been identical in every field. Classroom
+    /// deployment is expressed through ``SafeMediaContext/classroomSubmission``
+    /// and host-app configuration, not through a separate policy.
+    @available(
+        *,
+        deprecated,
+        renamed: "childStrict",
+        message: "Identical to childStrict in every field. Use childStrict for classroom deployments. Scheduled for removal no earlier than 1.0."
     )
+    static let classroomStrict = childStrict
 }

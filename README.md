@@ -240,7 +240,8 @@ SafeMediaKit separates sensitive, unknown, unavailable, and failure behavior:
 | `adultMinimal` | `blurWithReveal` | `allow` | `allow` | `allow` | `allow` | yes | no |
 | `teenMessaging` | `blurWithReveal` | `blurWithReveal` | `blurWithReveal` | `blurWithReveal` | `blurWithReveal` | yes | yes |
 | `childStrict` | `block` | `interruptVideo` | `block` | `block` | `block` | no | yes |
-| `classroomStrict` | `block` | `interruptVideo` | `block` | `block` | `block` | no | yes |
+
+`classroomStrict` remains as a deprecated alias for `childStrict`. The two have always been identical in every field.
 
 Preset names are UX defaults, not legal classifications, age-verification mechanisms, or safety guarantees. Host apps remain responsible for account policy, parental consent, and age-assurance requirements.
 

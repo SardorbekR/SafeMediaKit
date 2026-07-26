@@ -39,7 +39,6 @@ Start by enabling Apple's capability and creating an engine. For deterministic p
 - ``SafeMediaPolicy/adultMinimal``
 - ``SafeMediaPolicy/teenMessaging``
 - ``SafeMediaPolicy/childStrict``
-- ``SafeMediaPolicy/classroomStrict``
 - ``SafeMediaContext``
 - ``SafeMediaDecision``
 - ``SafeMediaPolicy/streamSensitiveAction``
@@ -59,3 +58,7 @@ Start by enabling Apple's capability and creating an engine. For deterministic p
 
 - ``SafeMediaAvailability``
 - ``SafeMediaUnavailableReason``
+
+### Deprecated
+
+- ``SafeMediaPolicy/classroomStrict``
