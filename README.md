@@ -228,8 +228,8 @@ While analysis remains attached, Apple interrupts capture frames or blanks
 decompressed frames after a detection until `continueStream()` is called.
 Apply concealment directly in the handler before returning, and conceal or stop
 the host pipeline before cancellation or replacement because detaching analysis
-can remove that native protection. See the DocC article “Integrating Live Video
-Streams” for lifecycle, reveal, cancellation, and audio-guidance details.
+can remove that native protection. See the DocC article "Integrating Live Video
+Streams" for lifecycle, reveal, cancellation, and audio-guidance details.
 
 ## Policies
 
