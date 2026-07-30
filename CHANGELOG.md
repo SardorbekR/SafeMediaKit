@@ -17,6 +17,11 @@
   through `SafeMediaContext.classroomSubmission` and host-app configuration
   rather than a separate policy. The alias is scheduled for removal no earlier
   than 1.0.
+- The `detectedTypes` category mapping is now gated by
+  `#if canImport(SensitiveContentAnalysis, _version: 145)` instead of
+  `#if compiler(>=6.4)`, so it keys on the framework version in the compile
+  SDK rather than the toolchain and stays correct when a newer compiler
+  builds against an older SDK.
 - Source note: exhaustive `SafeMediaContext` switches must handle `.liveVideo`.
   The package now requires Xcode 26 or later with Swift 6.2 or later.
 
