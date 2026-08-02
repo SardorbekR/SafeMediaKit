@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 - 2026-08-02
 
 - Added `SafeMediaStreamEngine`, `SafeMediaStreamAnalyzing`, and the iOS 26+
   `AppleSensitiveContentStreamAnalyzer` for fail-closed monitoring of attached
@@ -12,6 +12,9 @@
 - Unexpected loss of an attached analysis stream now produces an
   `.analysisFailed` decision; blurred streams cannot consume a newer verdict
   until the host explicitly continues them.
+- `SafeMediaImage` and `SafeMediaImageView` now accept local file URLs only.
+  Other URL schemes produce a loading-failure decision via the policy's
+  `failureAction` instead of being read synchronously by `Data(contentsOf:)`.
 - Deprecated `classroomStrict` in favor of `childStrict`. The two presets have
   always been identical in every field, and classroom deployment is expressed
   through `SafeMediaContext.classroomSubmission` and host-app configuration
