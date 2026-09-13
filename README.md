@@ -134,6 +134,13 @@ imageView.configure(
 
 `SafeMediaImageView` is compiled only when UIKit is available, so pure macOS builds do not expose it.
 
+The bundled UIKit overlay measures its content to choose a full or compact
+layout. Compact overlays omit the icon and tighten padding; long button titles
+can stack vertically. If the content still cannot fit, it scrolls vertically
+so the warning and actions remain reachable at large Dynamic Type sizes. The
+image stays redacted underneath. Custom `overlayProvider:` views control their
+own layout.
+
 ## Custom Intervention Overlay
 
 Brand the intervention UI without rebuilding the flow. Pass a trailing `overlay` closure; it receives a `SafeMediaOverlayState` and replaces the built-in overlay for every non-allow state (blur, block, unavailable, and load failure):
@@ -294,6 +301,11 @@ Apps can open their own Settings page with `UIApplication.openSettingsURLString`
 
 `Examples/SafeMediaChatDemo` contains a copy-paste SwiftUI demo showing safe, sensitive, and unavailable states with mock analyzers — no explicit media. See its README for setup.
 
+`Examples/SafeMediaUIKitQA` provides a simulator gallery and hosted UIKit
+regression tests. `Examples/SafeMediaVideoQA` provides user-operated capture and
+local-decode pipelines for device validation; its README records the checks
+performed and remaining device tests.
+
 ## Localization
 
 All user-facing strings in the default SwiftUI and UIKit intervention UI are configurable:
@@ -336,7 +348,7 @@ When compiled with an SDK that exposes `SCSensitivityAnalysis.detectedTypes`, Sa
 - Video thumbnail and `AVPlayer` polish
 - A bundled live-stream intervention view, if adopter demand warrants one
 - More category-aware policies when newer Apple APIs are broadly available
-- Snapshot/UI tests
+- Broader snapshot/UI test coverage beyond the UIKit overlay regressions
 
 ## References
 

@@ -22,3 +22,10 @@ jobs:
           CODE_SIGNING_ALLOWED=NO
       - name: Test
         run: swift test
+      - name: Test UIKit overlays and QA decoder
+        run: >-
+          xcodebuild test
+          -project Examples/SafeMediaUIKitQA/SafeMediaUIKitQA.xcodeproj
+          -scheme SafeMediaUIKitQA
+          -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest'
+          CODE_SIGNING_ALLOWED=NO

@@ -1,0 +1,27 @@
+name: SafeMediaVideoQA
+options:
+  deploymentTarget:
+    iOS: '26.0'
+packages:
+  SafeMediaKit:
+    path: ../..
+targets:
+  SafeMediaVideoQA:
+    type: application
+    platform: iOS
+    sources: [Sources, Resources]
+    dependencies:
+      - package: SafeMediaKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.sardor.SafeMediaVideoQA
+        SWIFT_VERSION: '6.0'
+        SWIFT_STRICT_CONCURRENCY: complete
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_NSCameraUsageDescription: User-started, on-device live-video safety QA. No recording or upload.
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+        TARGETED_DEVICE_FAMILY: '1,2'
+        CODE_SIGN_ENTITLEMENTS: SafeMediaVideoQA.entitlements
+    scheme: {}

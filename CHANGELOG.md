@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.1 - 2026-09-13
+
+- The bundled UIKit overlay now selects a compact layout by measured fit,
+  reflows long action titles vertically, and scrolls oversized content without
+  removing image redaction. Full layouts retain the existing 16-point margins.
+- UIKit now combines the warning title and message into one VoiceOver element,
+  with separately focusable Show and Report buttons.
+- Added iOS regression coverage for overlay fit, resizing, Dynamic Type,
+  accessibility structure, reveal/report behavior, and custom overlays.
+- Added synthetic decoder regressions for empty track markers, frame ordering,
+  final-frame duration, and cancellation; these run in the hosted iOS CI suite.
+- Added UIKit and live-video QA examples. The video harness builds and supports
+  user-operated device checks; it does not establish that native censorship,
+  resume, cancellation, or detection latency have been verified on hardware.
+
 ## 0.3.0 - 2026-08-02
 
 - Added `SafeMediaStreamEngine`, `SafeMediaStreamAnalyzing`, and the iOS 26+

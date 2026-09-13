@@ -1,0 +1,47 @@
+name: SafeMediaUIKitQA
+options:
+  bundleIdPrefix: com.safemediakit.examples
+  deploymentTarget:
+    iOS: '17.0'
+packages:
+  SafeMediaKit:
+    path: ../..
+settings:
+  base:
+    SWIFT_VERSION: '6.0'
+    GENERATE_INFOPLIST_FILE: YES
+    CODE_SIGNING_ALLOWED: NO
+targets:
+  SafeMediaUIKitQA:
+    type: application
+    platform: iOS
+    sources: [Sources]
+    settings:
+      base:
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+    dependencies:
+      - package: SafeMediaKit
+      - package: SafeMediaKit
+        product: SafeMediaKitTesting
+  SafeMediaUIKitQATests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - ../../Tests/SafeMediaKitTests/SafeMediaImageViewTests.swift
+      - Tests
+      - ../SafeMediaVideoQA/Sources/VideoPipelines.swift
+      - ../SafeMediaVideoQA/Resources/solid-gray.mp4
+      - ../SafeMediaVideoQA/Resources/gray-ramp-bframes.mp4
+    dependencies:
+      - target: SafeMediaUIKitQA
+      - package: SafeMediaKit
+      - package: SafeMediaKit
+        product: SafeMediaKitTesting
+schemes:
+  SafeMediaUIKitQA:
+    build:
+      targets:
+        SafeMediaUIKitQA: all
+    test:
+      targets: [SafeMediaUIKitQATests]

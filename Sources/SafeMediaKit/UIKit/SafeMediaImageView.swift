@@ -12,13 +12,7 @@ import UIKit
 public final class SafeMediaImageView: UIView {
     private let imageView = UIImageView()
     private let blurView = UIVisualEffectView(effect: UIBlurEffect(style: .systemMaterial))
-    private let overlayView = UIStackView()
-    private let iconView = UIImageView()
-    private let titleLabel = UILabel()
-    private let messageLabel = UILabel()
-    private let revealButton = UIButton(type: .system)
-    private let reportButton = UIButton(type: .system)
-    private let buttonsStack = UIStackView()
+    private let overlayView = SafeMediaDefaultOverlay()
     private let activityIndicator = UIActivityIndicatorView(style: .medium)
 
     private var task: Task<Void, Never>?
@@ -159,53 +153,8 @@ public final class SafeMediaImageView: UIView {
         addSubview(activityIndicator)
 
         overlayView.translatesAutoresizingMaskIntoConstraints = false
-        overlayView.axis = .vertical
-        overlayView.alignment = .center
-        overlayView.spacing = 12
         overlayView.isHidden = true
         addSubview(overlayView)
-
-        iconView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(
-            textStyle: .title2,
-            scale: .large
-        )
-        iconView.tintColor = .secondaryLabel
-        iconView.adjustsImageSizeForAccessibilityContentSizeCategory = true
-        iconView.isAccessibilityElement = false
-
-        titleLabel.font = .preferredFont(forTextStyle: .headline)
-        titleLabel.adjustsFontForContentSizeCategory = true
-        titleLabel.numberOfLines = 0
-        titleLabel.textAlignment = .center
-
-        messageLabel.font = .preferredFont(forTextStyle: .footnote)
-        messageLabel.textColor = .secondaryLabel
-        messageLabel.adjustsFontForContentSizeCategory = true
-        messageLabel.numberOfLines = 0
-        messageLabel.textAlignment = .center
-
-        var revealConfiguration = UIButton.Configuration.filled()
-        revealConfiguration.cornerStyle = .capsule
-        revealConfiguration.buttonSize = .small
-        revealButton.configuration = revealConfiguration
-        revealButton.addTarget(self, action: #selector(revealTapped), for: .touchUpInside)
-
-        var reportConfiguration = UIButton.Configuration.gray()
-        reportConfiguration.cornerStyle = .capsule
-        reportConfiguration.buttonSize = .small
-        reportButton.configuration = reportConfiguration
-        reportButton.addTarget(self, action: #selector(reportTapped), for: .touchUpInside)
-
-        buttonsStack.axis = .horizontal
-        buttonsStack.spacing = 8
-        buttonsStack.addArrangedSubview(revealButton)
-        buttonsStack.addArrangedSubview(reportButton)
-
-        overlayView.addArrangedSubview(iconView)
-        overlayView.addArrangedSubview(titleLabel)
-        overlayView.addArrangedSubview(messageLabel)
-        overlayView.addArrangedSubview(buttonsStack)
-        overlayView.setCustomSpacing(4, after: titleLabel)
 
         NSLayoutConstraint.activate([
             imageView.topAnchor.constraint(equalTo: topAnchor),
@@ -218,27 +167,14 @@ public final class SafeMediaImageView: UIView {
             blurView.trailingAnchor.constraint(equalTo: trailingAnchor),
             blurView.bottomAnchor.constraint(equalTo: bottomAnchor),
 
-            overlayView.centerXAnchor.constraint(equalTo: centerXAnchor),
-            overlayView.centerYAnchor.constraint(equalTo: centerYAnchor),
-            overlayView.widthAnchor.constraint(lessThanOrEqualToConstant: 280),
-            overlayView.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 16),
-            overlayView.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -16),
-            // Lower priority so cramped frames compress the overlay (clipping
-            // the icon edge) instead of breaking the layout.
-            prioritized(overlayView.topAnchor.constraint(greaterThanOrEqualTo: topAnchor, constant: 16)),
-            prioritized(overlayView.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -16)),
+            overlayView.topAnchor.constraint(equalTo: topAnchor),
+            overlayView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            overlayView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            overlayView.bottomAnchor.constraint(equalTo: bottomAnchor),
 
             activityIndicator.centerXAnchor.constraint(equalTo: centerXAnchor),
             activityIndicator.centerYAnchor.constraint(equalTo: centerYAnchor)
         ])
-    }
-
-    private func prioritized(
-        _ constraint: NSLayoutConstraint,
-        _ priority: UILayoutPriority = .defaultHigh
-    ) -> NSLayoutConstraint {
-        constraint.priority = priority
-        return constraint
     }
 
     private func apply(_ decision: SafeMediaDecision) {
@@ -277,23 +213,9 @@ public final class SafeMediaImageView: UIView {
                 overlayView.isHidden = true
                 installCustomOverlay(overlayProvider(state))
             } else {
-                applyDefaultOverlay(with: state)
+                overlayView.apply(state)
             }
         }
-    }
-
-    private func applyDefaultOverlay(with state: SafeMediaOverlayState) {
-        iconView.image = UIImage(
-            systemName: SafeMediaOverlayGlyph.systemImageName(for: state.decision)
-        )
-        titleLabel.text = state.title
-        messageLabel.text = state.message
-
-        revealButton.configuration?.title = state.configuration.revealButtonTitle
-        reportButton.configuration?.title = state.configuration.reportButtonTitle
-        revealButton.isHidden = !state.canReveal
-        reportButton.isHidden = !state.canReport
-        buttonsStack.isHidden = !state.canReveal && !state.canReport
     }
 
     private func installCustomOverlay(_ view: UIView) {
@@ -333,15 +255,6 @@ public final class SafeMediaImageView: UIView {
         removeCustomOverlay()
         imageView.isHidden = false
         setHiddenState(false)
-    }
-
-    @objc private func revealTapped() {
-        revealMedia()
-        onReveal()
-    }
-
-    @objc private func reportTapped() {
-        onReport()
     }
 }
 #endif

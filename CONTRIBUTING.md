@@ -23,6 +23,24 @@ To validate Xcode 27 category mapping without changing global Xcode selection:
 DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer swift test
 ```
 
+UIKit tests must run on an iOS simulator; macOS `swift test` excludes UIKit.
+Choose an available simulator from `xcrun simctl list devices available`:
+
+```sh
+xcodebuild test \
+  -project Examples/SafeMediaUIKitQA/SafeMediaUIKitQA.xcodeproj \
+  -scheme SafeMediaUIKitQA \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' \
+  CODE_SIGNING_ALLOWED=NO
+```
+
+Use the UIKit QA app host to exercise button dispatch and rendering. The
+hostless `SafeMediaKit-Package` scheme can run core iOS tests, but does not
+initialize `UIApplication` for UIKit interactions. The overlay tests keep
+rendered attachments in the Xcode test result for visual inspection.
+The same host runs the video QA decoder's synthetic-fixture regressions without
+an analyzer or sensor access; these are not real-device SCA validation.
+
 ## Pull Requests
 
 Before opening a PR:
