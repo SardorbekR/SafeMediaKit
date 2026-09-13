@@ -143,6 +143,7 @@ final class SafeMediaDefaultOverlay: UIView {
         revealConfiguration.titleLineBreakMode = .byWordWrapping
         revealConfiguration.titleAlignment = .center
         revealButton.configuration = revealConfiguration
+        revealButton.isAccessibilityElement = true
         revealButton.addTarget(self, action: #selector(revealTapped), for: .touchUpInside)
         var reportConfiguration = UIButton.Configuration.gray()
         reportConfiguration.cornerStyle = .capsule
@@ -150,6 +151,7 @@ final class SafeMediaDefaultOverlay: UIView {
         reportConfiguration.titleLineBreakMode = .byWordWrapping
         reportConfiguration.titleAlignment = .center
         reportButton.configuration = reportConfiguration
+        reportButton.isAccessibilityElement = true
         reportButton.addTarget(self, action: #selector(reportTapped), for: .touchUpInside)
         buttonsStack.spacing = 8
         buttonsStack.addArrangedSubview(revealButton)

@@ -4,6 +4,11 @@ import XCTest
 /// Exercises only the synthetic gray fixture, without an SCA analyzer or sensors.
 @MainActor
 final class DecodePipelineTests: XCTestCase {
+    // Cold CI simulators can spend several seconds initializing VideoToolbox
+    // and Core Image. This bounds callback waits, not playback performance;
+    // frame order/count and presentation duration remain independently asserted.
+    private let callbackTimeout: TimeInterval = 30
+
     func testSingleFrameIsPresentedBeforeCompletionAndHeldForItsDuration() async throws {
         let url = try XCTUnwrap(
             Bundle(for: Self.self).url(
@@ -26,7 +31,7 @@ final class DecodePipelineTests: XCTestCase {
             pipeline.stop()
             completed.fulfill()
         }
-        await fulfillment(of: [completed], timeout: 5)
+        await fulfillment(of: [completed], timeout: callbackTimeout)
         XCTAssertEqual(callbacks, ["frame", "completion"])
         let start = try XCTUnwrap(presentedAt)
         let end = try XCTUnwrap(completedAt)
@@ -56,7 +61,7 @@ final class DecodePipelineTests: XCTestCase {
             pipeline.stop()
             completed.fulfill()
         }
-        await fulfillment(of: [completed], timeout: 6)
+        await fulfillment(of: [completed], timeout: callbackTimeout)
         XCTAssertEqual(brightness.count, 10, "Presented luminance: \(brightness)")
         XCTAssertEqual(brightness, brightness.sorted())
         XCTAssertEqual(Set(brightness).count, 10)
@@ -83,7 +88,7 @@ final class DecodePipelineTests: XCTestCase {
         } completion: {
             unexpected.fulfill()
         }
-        await fulfillment(of: [firstFrame], timeout: 5)
+        await fulfillment(of: [firstFrame], timeout: callbackTimeout)
         await fulfillment(of: [unexpected], timeout: 2.2)
         XCTAssertEqual(frameCount, 1)
     }

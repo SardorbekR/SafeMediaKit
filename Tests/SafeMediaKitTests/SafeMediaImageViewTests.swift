@@ -143,7 +143,12 @@ final class SafeMediaImageViewTests: XCTestCase {
             XCTAssertTrue(textGroup.subviews.allSatisfy { !$0.isAccessibilityElement })
             let buttons = descendants(of: overlay).compactMap { $0 as? UIButton }
             XCTAssertEqual(buttons.count, 2)
-            XCTAssertTrue(buttons.allSatisfy { $0.isAccessibilityElement && !$0.isHidden })
+            for button in buttons {
+                let title = button.configuration?.title ?? "Action"
+                XCTAssertTrue(
+                    button.isAccessibilityElement, "\(title) must be an accessibility element")
+                XCTAssertFalse(button.isHidden, "\(title) must be visible")
+            }
             XCTAssertFalse(try icon(in: overlay).isAccessibilityElement)
         }
     }
